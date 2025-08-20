@@ -277,7 +277,7 @@ export default function AdminPage() {
     <ProtectedRoute requiredRole="admin">
       <div className="min-h-screen p-6 bg-gradient-to-br from-red-600 via-red-900 to-gray-900">
         <div className="max-w-7xl mx-auto">
-          <Tabs value={tab} onValueChange={setTab}>
+          <Tabs value={tab} onValueChange={v => setTab(v as typeof tab)}>
             <TabsList className="mb-8">
               <TabsTrigger value="orders">Pedidos</TabsTrigger>
               <TabsTrigger value="users">Usuários</TabsTrigger>
