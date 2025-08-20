@@ -119,7 +119,11 @@ export default function AdminPage() {
   useEffect(() => {
     fetchOrders()
     const unsubscribe = subscribeToOrderUpdates()
-    return unsubscribe
+    return () => {
+      if (typeof unsubscribe === 'function') {
+        unsubscribe()
+      }
+    }
   }, [])
 
   const fetchOrders = async () => {
