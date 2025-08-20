@@ -244,7 +244,7 @@ export default function OrderSuccessPage() {
 
           <div className="text-center">
             <Link href="/">
-              <Button variant="outline" className="border-white/15 text-white hover:bg-white/10">
+              <Button variant="secondary" className="border-white/15 text-white hover:bg-white/10">
                 Voltar ao Cardápio
               </Button>
             </Link>
