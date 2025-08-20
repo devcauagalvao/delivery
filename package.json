@@ -50,7 +50,6 @@
     "cmdk": "^1.0.0",
     "date-fns": "^3.6.0",
     "embla-carousel-react": "^8.3.0",
-    "eslint": "^9.33.0",
     "eslint-config-next": "13.5.1",
     "framer-motion": "^11.0.6",
     "glob": "^11.0.3",
@@ -84,6 +83,7 @@
     "@types/node": "^20.19.0",
     "@types/qrcode": "^1.5.5",
     "@vitejs/plugin-react": "^4.2.1",
+    "eslint": "^8.57.1",
     "jsdom": "^24.0.0",
     "vitest": "^3.2.4"
   }
