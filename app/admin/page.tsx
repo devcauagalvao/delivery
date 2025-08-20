@@ -532,18 +532,21 @@ export default function AdminPage() {
                   <div>
                     <h3 className="font-semibold mb-1 text-gray-700">Itens</h3>
                     <div className="space-y-2">
-                      {selectedOrder.order_items?.map((item: OrderItem) => (
-                        <div key={item.id} className="flex justify-between bg-red-100 p-3 rounded-xl text-gray-900">
-                          <span>{item.quantity}x {item.product?.name}</span>
-                          <span>
-                            {formatPrice(
-                              item.subtotal_cents !== undefined
-                                ? item.subtotal_cents
-                                : item.unit_price_cents * item.quantity
-                            )}
-                          </span>
-                        </div>
-                      ))}
+                      {selectedOrder.order_items?.map((item) => {
+                        const typedItem = item as OrderItem & { product: Product }
+                        return (
+                          <div key={typedItem.id} className="flex justify-between bg-red-100 p-3 rounded-xl text-gray-900">
+                            <span>{typedItem.quantity}x {typedItem.product.name}</span>
+                            <span>
+                              {formatPrice(
+                                typedItem.subtotal_cents !== undefined
+                                  ? typedItem.subtotal_cents
+                                  : typedItem.unit_price_cents * typedItem.quantity
+                              )}
+                            </span>
+                          </div>
+                        )
+                      })}
                     </div>
                   </div>
 
