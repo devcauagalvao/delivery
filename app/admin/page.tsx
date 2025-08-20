@@ -532,18 +532,31 @@ export default function AdminPage() {
                   <div>
                     <h3 className="font-semibold mb-1 text-gray-700">Itens</h3>
                     <div className="space-y-2">
-                      {selectedOrder.order_items?.map((item) => (
-                        <div key={item.id} className="flex justify-between items-center">
-                          <span>
-                            {item.quantity}x {item.product?.name ?? "Produto"}
-                          </span>
-                          <span>
-                            {formatPrice(
-                              (item.unit_price_cents ?? 0) * item.quantity
-                            )}
-                          </span>
-                        </div>
-                      ))}
+                      {selectedOrder.order_items?.map((item) => {
+                        // Garante tipagem e valores padrão para propriedades opcionais
+                        const safeProduct: Product = {
+                          id: item.product?.id ?? "",
+                          name: item.product?.name ?? "Produto",
+                          description: item.product?.description ?? "",
+                          price_cents: item.product?.price_cents ?? 0,
+                          original_price_cents: item.product?.original_price_cents ?? 0,
+                          image_url: item.product?.image_url ?? "",
+                          active: item.product?.active ?? false,
+                          created_at: item.product?.created_at ?? "",
+                        }
+                        return (
+                          <div key={item.id} className="flex justify-between items-center">
+                            <span>
+                              {item.quantity}x {safeProduct.name}
+                            </span>
+                            <span>
+                              {formatPrice(
+                                (item.unit_price_cents ?? safeProduct.price_cents ?? 0) * item.quantity
+                              )}
+                            </span>
+                          </div>
+                        )
+                      })}
                     </div>
                   </div>
 
