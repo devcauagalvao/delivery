@@ -1,7 +1,7 @@
 'use client'
 
-import { Product } from '@/lib/supabase'
-import { GlassCard } from './ui/glass-card'
+import type { Product as MenuProduct } from "@/lib/menu"
+import type { Product as SupabaseProduct } from "@/lib/supabase"
 import { Button } from './ui/button'
 import { Plus, ShoppingBag } from 'lucide-react'
 import { motion } from 'framer-motion'
@@ -10,71 +10,84 @@ import { toast } from 'sonner'
 import Image from 'next/image'
 
 interface ProductCardProps {
-  product: Product
+  product: MenuProduct
 }
+
+// Converte MenuProduct em SupabaseProduct
+const mapMenuToSupabaseProduct = (product: MenuProduct): SupabaseProduct => ({
+  id: product.id,
+  name: product.name,
+  description: product.description,
+  price_cents: product.price * 100,
+  image_url: product.image,
+  active: product.active,
+  created_at: product.created_at,
+  updated_at: product.updated_at,
+})
 
 export function ProductCard({ product }: ProductCardProps) {
   const { addItem } = useCart()
 
-  const formatPrice = (cents: number) => {
+  const formatPrice = (price: number) => {
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
       currency: 'BRL'
-    }).format(cents / 100)
+    }).format(price)
   }
 
   const handleAddToCart = () => {
-    addItem(product)
+    const supabaseProduct = mapMenuToSupabaseProduct(product)
+    addItem(supabaseProduct)
     toast.success(`${product.name} adicionado ao carrinho!`)
   }
 
   return (
-    <GlassCard className="p-6 space-y-4">
-      <div className="relative aspect-square rounded-2xl overflow-hidden bg-black/5">
-        {product.image_url ? (
+    <motion.div
+      whileHover={{ scale: 1.03 }}
+      className="rounded-3xl overflow-hidden bg-[#111111] border border-[#222222] shadow-md transition-all duration-300"
+    >
+      {/* Imagem */}
+      <div className="relative w-full h-52 sm:h-60 md:h-64 lg:h-56 xl:h-60">
+        {product.image ? (
           <Image
-            src={product.image_url}
+            src={product.image}
             alt={product.name}
             fill
             className="object-cover"
             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center">
-            <ShoppingBag className="w-16 h-16 text-black/30" />
+          <div className="w-full h-full flex items-center justify-center bg-[#222222]">
+            <ShoppingBag className="w-16 h-16 text-gray-500" />
           </div>
         )}
+        <div className="absolute inset-0 bg-black/20 pointer-events-none" />
       </div>
 
-      <div className="space-y-2">
-        <h3 className="text-xl font-semibold text-black">{product.name}</h3>
-        {product.description && (
-          <p className="text-black/70 text-sm line-clamp-2">{product.description}</p>
-        )}
-      </div>
-
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <span className="text-2xl font-bold text-black">
-            {formatPrice(product.price_cents)}
-          </span>
-          {product.original_price_cents && product.original_price_cents > product.price_cents && (
-            <span className="text-black/50 line-through text-sm">
-              {formatPrice(product.original_price_cents)}
-            </span>
+      {/* Conteúdo */}
+      <div className="p-4 flex flex-col gap-3">
+        <div className="space-y-1">
+          <h3 className="text-lg sm:text-xl font-semibold text-gray-200">{product.name}</h3>
+          {product.description && (
+            <p className="text-gray-400 text-sm line-clamp-2">{product.description}</p>
           )}
         </div>
 
-        <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+        {/* Preço + botão */}
+        <div className="flex items-center justify-between mt-auto">
+          <span className="text-xl sm:text-2xl font-bold text-gray-200">
+            {formatPrice(product.price)}
+          </span>
+
           <Button
             onClick={handleAddToCart}
             size="sm"
-            className="bg-red-500 hover:bg-red-600 text-white rounded-full p-3"
+            className="bg-[#880000] hover:bg-[#aa0000] text-gray-100 rounded-full p-3 shadow-md transition-all"
           >
             <Plus className="w-5 h-5" strokeWidth={4} />
           </Button>
-        </motion.div>
+        </div>
       </div>
-    </GlassCard>
+    </motion.div>
   )
 }
