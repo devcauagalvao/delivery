@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input'
 import { GlassCard } from '@/components/ui/glass-card'
 import Link from 'next/link'
 import { useAuth } from '@/lib/auth'
+import { LogOut, Shield, LogIn } from 'lucide-react';
 
 export default function HomePage() {
   const [products, setProducts] = useState<Product[]>([])
@@ -30,7 +31,7 @@ export default function HomePage() {
       .select('*')
       .eq('active', true)
       .order('name')
-    
+
     if (data) setProducts(data)
     setLoading(false)
   }
@@ -70,31 +71,46 @@ export default function HomePage() {
         <div className="max-w-6xl mx-auto p-6">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h1 className="text-3xl font-bold text-white mb-2">
-                Black Bull Burgers
+              <h1 className="text-3xl font-bold text-black mb-2">
+                Tauros Black Burgers
               </h1>
-              <p className="text-white/70">Os melhores hambúrgueres da cidade</p>
+              <p className="text-black/70">Os melhores hambúrgueres da cidade</p>
             </div>
 
             <div className="flex items-center gap-4">
               {user ? (
                 <>
-                  <span className="text-white/70">Olá, {profile?.full_name}</span>
+                  <span className="text-black/70">Olá, {profile?.full_name}</span>
                   {profile?.role === 'admin' && (
                     <Link href="/admin">
-                      <Button variant="outline" size="sm">
-                        Admin
+                      <Button variant="admin">
+                        <span className="flex items-center w-full">
+                          <Shield className="w-4 h-4" />
+                          <span className="ml-2 w-0 opacity-0 group-hover:w-auto group-hover:opacity-100 transition-all duration-300 whitespace-nowrap overflow-hidden">
+                            Admin
+                          </span>
+                        </span>
                       </Button>
                     </Link>
                   )}
-                  <Button variant="outline" size="sm" onClick={signOut}>
-                    Sair
+                  <Button variant="logout" onClick={signOut}>
+                    <span className="flex items-center w-full">
+                      <LogOut className="w-4 h-4 flex-shrink-0" strokeWidth={4} />
+                      <span className="ml-2 w-0 opacity-0 group-hover:w-auto group-hover:opacity-100 transition-all duration-300 whitespace-nowrap overflow-hidden">
+                        Sair
+                      </span>
+                    </span>
                   </Button>
                 </>
               ) : (
                 <Link href="/auth">
-                  <Button variant="outline" size="sm">
-                    Entrar
+                  <Button variant="login">
+                    <span className="flex items-center w-full">
+                      <LogIn className="w-4 h-4" />
+                      <span className="ml-2 w-0 opacity-0 group-hover:w-auto group-hover:opacity-100 transition-all duration-300 whitespace-nowrap overflow-hidden">
+                        Entrar
+                      </span>
+                    </span>
                   </Button>
                 </Link>
               )}
@@ -103,12 +119,12 @@ export default function HomePage() {
 
           {/* Search */}
           <div className="relative max-w-md">
-            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-white/50 w-5 h-5" />
+            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-black/50 w-5 h-5" />
             <Input
               placeholder="Buscar hambúrgueres..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-12 bg-white/10 border-white/15 text-white placeholder:text-white/50"
+              className="pl-12 bg-white/10 border-white/15 text-black placeholder:text-black/50"
             />
           </div>
         </div>
@@ -139,7 +155,7 @@ export default function HomePage() {
             animate={{ opacity: 1 }}
             className="text-center py-12"
           >
-            <p className="text-white/70 text-lg">
+            <p className="text-black/70 text-lg">
               Nenhum produto encontrado para "{searchQuery}"
             </p>
           </motion.div>

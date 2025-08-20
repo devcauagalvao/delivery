@@ -8,7 +8,7 @@ import { Toaster } from 'sonner'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'Black Bull Burgers',
+  title: 'Tauros Black Burgers',
   description: 'Os melhores hambúrgueres da cidade com entrega rápida',
 }
 
@@ -19,7 +19,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="pt-BR">
-      <body className={`${inter.className} bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 min-h-screen`}>
+      <body className={`${inter.className} bg-white`}>
         <AuthProvider>
           <CartProvider>
             {children}
@@ -31,7 +31,7 @@ export default function RootLayout({
                   background: 'rgba(255, 255, 255, 0.1)',
                   backdropFilter: 'blur(20px)',
                   border: '1px solid rgba(255, 255, 255, 0.15)',
-                  color: 'white',
+                  color: 'black',
                 },
               }}
             />
