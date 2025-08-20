@@ -29,7 +29,7 @@ import {
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
-import { useDebounce } from '@/hooks/useDebounce' // Supondo hook de debounce
+import { useDebounce } from '@/hooks/useDebounce'
 
 const statusConfig = {
   pending: {
@@ -87,12 +87,22 @@ type User = {
 type Product = {
   id: string
   name: string
-  description: string
+  description?: string
   price_cents: number
   original_price_cents: number
   image_url: string
   active: boolean
   created_at: string
+}
+
+type OrderItem = {
+  id: string
+  order_id: string
+  product_id: string
+  quantity: number
+  unit_price_cents: number
+  subtotal_cents?: number
+  product?: Product // garantir tipagem para uso seguro
 }
 
 export default function AdminPage() {
@@ -188,7 +198,6 @@ export default function AdminPage() {
   }
 
   const updateOrderStatus = async (orderId: string, action: string) => {
-    // Mapeamento de action para status real do pedido
     const actionToStatus: Record<string, string> = {
       accept: 'accepted',
       reject: 'rejected',
@@ -277,7 +286,7 @@ export default function AdminPage() {
     <ProtectedRoute requiredRole="admin">
       <div className="min-h-screen p-6 bg-gradient-to-br from-red-600 via-red-900 to-gray-900">
         <div className="max-w-7xl mx-auto">
-          <Tabs value={tab} onValueChange={v => setTab(v as typeof tab)}>
+          <Tabs value={tab} onValueChange={v => setTab(v as 'orders' | 'users' | 'products')}>
             <TabsList className="mb-8">
               <TabsTrigger value="orders">Pedidos</TabsTrigger>
               <TabsTrigger value="users">Usuários</TabsTrigger>
@@ -395,7 +404,6 @@ export default function AdminPage() {
                   <option value="">Todas Funções</option>
                   <option value="admin">Admin</option>
                   <option value="user">Usuário</option>
-                  {/* Adicione outros papéis se houver */}
                 </select>
               </div>
               <div className="bg-white/80 rounded-xl shadow p-4">
@@ -417,7 +425,7 @@ export default function AdminPage() {
                         <td>{user.role}</td>
                         <td>{formatDate(user.created_at)}</td>
                         <td>
-                          <Button size="sm" onClick={() => {/* abrir modal de edição */}}>Editar</Button>
+                          <Button size="sm" onClick={() => {}}>Editar</Button>
                         </td>
                       </tr>
                     ))}
@@ -445,7 +453,7 @@ export default function AdminPage() {
                   <option value="true">Ativos</option>
                   <option value="false">Inativos</option>
                 </select>
-                <Button onClick={() => {/* abrir modal de novo produto */}}>Novo Produto</Button>
+                <Button onClick={() => {}}>Novo Produto</Button>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                 {products.map(product => (
@@ -471,7 +479,7 @@ export default function AdminPage() {
                         {product.active ? 'Ativo' : 'Inativo'}
                       </span>
                     </div>
-                    <Button size="sm" onClick={() => {/* abrir modal de edição */}}>Editar</Button>
+                    <Button size="sm" onClick={() => {}}>Editar</Button>
                   </GlassCard>
                 ))}
                 {products.length === 0 && <div className="text-center text-gray-400 py-8 italic col-span-full">Nenhum produto encontrado</div>}
@@ -524,10 +532,16 @@ export default function AdminPage() {
                   <div>
                     <h3 className="font-semibold mb-1 text-gray-700">Itens</h3>
                     <div className="space-y-2">
-                      {selectedOrder.order_items?.map(item => (
+                      {selectedOrder.order_items?.map((item: OrderItem) => (
                         <div key={item.id} className="flex justify-between bg-red-100 p-3 rounded-xl text-gray-900">
                           <span>{item.quantity}x {item.product?.name}</span>
-                          <span>{formatPrice(item.subtotal_cents ?? item.unit_price_cents * item.quantity)}</span>
+                          <span>
+                            {formatPrice(
+                              item.subtotal_cents !== undefined
+                                ? item.subtotal_cents
+                                : item.unit_price_cents * item.quantity
+                            )}
+                          </span>
                         </div>
                       ))}
                     </div>
