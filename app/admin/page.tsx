@@ -243,7 +243,7 @@ export default function AdminPage() {
       const { data, error } = await query
       if (!error) setUsers(data as User[])
     }
-    fetchUsers()
+    void fetchUsers()
   }, [debouncedUserFilter, tab])
 
   // Carregar produtos
@@ -258,7 +258,7 @@ export default function AdminPage() {
       const { data, error } = await query
       if (!error) setProducts(data as Product[])
     }
-    fetchProducts()
+    void fetchProducts()
   }, [debouncedProductFilter, tab])
 
   // Filtros de pedidos
@@ -533,17 +533,11 @@ export default function AdminPage() {
                     <h3 className="font-semibold mb-1 text-gray-700">Itens</h3>
                     <div className="space-y-2">
                       {selectedOrder.order_items?.map((item) => {
-                        const typedItem = item as OrderItem & { product: Product }
+                        const typedItem = item as OrderItem & { product?: Product }
                         return (
-                          <div key={typedItem.id} className="flex justify-between bg-red-100 p-3 rounded-xl text-gray-900">
-                            <span>{typedItem.quantity}x {typedItem.product.name}</span>
-                            <span>
-                              {formatPrice(
-                                typedItem.subtotal_cents !== undefined
-                                  ? typedItem.subtotal_cents
-                                  : typedItem.unit_price_cents * typedItem.quantity
-                              )}
-                            </span>
+                          <div key={typedItem.id}>
+                            <span>{typedItem.quantity}x {typedItem.product?.name ?? "Produto"}</span>
+                            <span>{formatPrice(typedItem.subtotal_cents ?? (typedItem.unit_price_cents * typedItem.quantity))}</span>
                           </div>
                         )
                       })}
