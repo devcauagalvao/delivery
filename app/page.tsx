@@ -107,30 +107,33 @@ export default function HomePage() {
         </div>
       </motion.header>
 
-      {/* Filtro de categorias */}
-      <div className="max-w-6xl mx-auto flex justify-center gap-4 pb-6">
-        <Button
-          onClick={() => setFilter('all')}
-          className={filter === 'all' ? 'bg-[#222222] text-gray-300' : 'bg-[#111111] text-gray-400'}
+      {/* Filtro de categorias em dropdown no canto superior direito */}
+      <div className="w-full px-4 sm:px-6 lg:px-8 mt-6 flex justify-between items-center">
+        <span className="text-sm text-gray-400">
+          {filteredProducts.length} produto{filteredProducts.length !== 1 && 's'} encontrado{filteredProducts.length !== 1 && 's'}
+        </span>
+        <select
+          value={filter}
+          onChange={(e) => setFilter(e.target.value as 'all' | 'classic' | 'black')}
+          className="
+      bg-[#1a1a1a]
+      text-gray-300
+      border border-[#333333]
+      rounded-md
+      px-4 py-2
+      focus:outline-none
+      focus:ring-1 focus:ring-[#cc9b3b]
+      transition-all duration-200
+    "
         >
-          Todos
-        </Button>
-        <Button
-          onClick={() => setFilter('classic')}
-          className={filter === 'classic' ? 'bg-[#222222] text-gray-300' : 'bg-[#111111] text-gray-400'}
-        >
-          Burgers Clássicos
-        </Button>
-        <Button
-          onClick={() => setFilter('black')}
-          className={filter === 'black' ? 'bg-[#222222] text-gray-300' : 'bg-[#111111] text-gray-400'}
-        >
-          Black Burgers
-        </Button>
+          <option value="all">Todos</option>
+          <option value="classic">Burgers Clássicos</option>
+          <option value="black">Black Burgers</option>
+        </select>
       </div>
 
       {/* Products */}
-      <main className="max-w-6xl mx-auto p-6">
+      <main className="w-full px-4 sm:px-6 lg:px-8 py-6">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
