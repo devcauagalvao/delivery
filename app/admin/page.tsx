@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import dynamic from 'next/dynamic'
 import { motion } from 'framer-motion'
 import {
   Clock,
@@ -17,7 +18,6 @@ import {
 import { ProtectedRoute } from '@/components/protected-route'
 import { GlassCard } from '@/components/ui/glass-card'
 import { Button } from '@/components/ui/button'
-import { OrderMap } from '@/components/order-map'
 import { supabase, OrderWithItems } from '@/lib/supabase'
 import { toast } from 'sonner'
 import {
@@ -31,79 +31,22 @@ import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
 import { useDebounce } from '@/hooks/useDebounce'
 
+// Carrega mapa apenas no cliente
+const OrderMap = dynamic(() => import('@/components/order-map'), { ssr: false })
+
 const statusConfig = {
-  pending: {
-    label: 'Novos',
-    icon: Clock,
-    color: 'text-red-500 bg-red-100',
-    actions: ['accept', 'reject'] as const
-  },
-  accepted: {
-    label: 'Aceitos',
-    icon: CheckCircle,
-    color: 'text-green-500 bg-green-100',
-    actions: ['preparing'] as const
-  },
-  preparing: {
-    label: 'Em Preparo',
-    icon: ChefHat,
-    color: 'text-yellow-500 bg-yellow-100',
-    actions: ['out_for_delivery'] as const
-  },
-  out_for_delivery: {
-    label: 'Saiu para Entrega',
-    icon: Truck,
-    color: 'text-purple-500 bg-purple-100',
-    actions: ['delivered'] as const
-  },
-  delivered: {
-    label: 'Entregues',
-    icon: Package,
-    color: 'text-gray-500 bg-gray-100',
-    actions: [] as const
-  },
-  rejected: {
-    label: 'Recusados',
-    icon: X,
-    color: 'text-gray-400 bg-gray-100',
-    actions: [] as const
-  },
-  cancelled: {
-    label: 'Cancelados',
-    icon: X,
-    color: 'text-gray-400 bg-gray-100',
-    actions: [] as const
-  }
+  pending: { label: 'Novos', icon: Clock, color: 'text-red-500 bg-red-100', actions: ['accept', 'reject'] as const },
+  accepted: { label: 'Aceitos', icon: CheckCircle, color: 'text-green-500 bg-green-100', actions: ['preparing'] as const },
+  preparing: { label: 'Em Preparo', icon: ChefHat, color: 'text-yellow-500 bg-yellow-100', actions: ['out_for_delivery'] as const },
+  out_for_delivery: { label: 'Saiu para Entrega', icon: Truck, color: 'text-purple-500 bg-purple-100', actions: ['delivered'] as const },
+  delivered: { label: 'Entregues', icon: Package, color: 'text-gray-500 bg-gray-100', actions: [] as const },
+  rejected: { label: 'Recusados', icon: X, color: 'text-gray-400 bg-gray-100', actions: [] as const },
+  cancelled: { label: 'Cancelados', icon: X, color: 'text-gray-400 bg-gray-100', actions: [] as const }
 }
 
-type User = {
-  id: string
-  full_name: string
-  phone: string
-  role: string
-  created_at: string
-}
-
-type Product = {
-  id: string
-  name: string
-  description?: string
-  price_cents: number
-  original_price_cents: number
-  image_url: string
-  active: boolean
-  created_at: string
-}
-
-type OrderItem = {
-  id: string
-  order_id: string
-  product_id: string
-  quantity: number
-  unit_price_cents: number
-  subtotal_cents?: number
-  product?: Product // garantir tipagem para uso seguro
-}
+type User = { id: string, full_name: string, phone: string, role: string, created_at: string }
+type Product = { id: string, name: string, description?: string, price_cents: number, original_price_cents: number, image_url: string, active: boolean, created_at: string }
+type OrderItem = { id: string, order_id: string, product_id: string, quantity: number, unit_price_cents: number, subtotal_cents?: number, product?: Product }
 
 export default function AdminPage() {
   const [orders, setOrders] = useState<OrderWithItems[]>([])
@@ -126,37 +69,21 @@ export default function AdminPage() {
   // Pedidos - filtros
   const [orderFilters, setOrderFilters] = useState({ status: '', payment: '', date: '' })
 
+  // Carregar pedidos
   useEffect(() => {
     fetchOrders()
-    const unsubscribe = subscribeToOrderUpdates()
-    return () => {
-      if (typeof unsubscribe === 'function') {
-        unsubscribe()
-      }
-    }
+    if (typeof window !== 'undefined') subscribeToOrderUpdates()
   }, [])
 
   const fetchOrders = async () => {
     setLoading(true)
     const { data, error } = await supabase
       .from('orders')
-      .select(`
-        *,
-        order_items (
-          *,
-          product:products (*)
-        ),
-        profile:profiles (*)
-      `)
+      .select(`*, order_items (*, product:products (*)), profile:profiles (*)`)
       .order('created_at', { ascending: false })
 
-    if (error) {
-      toast.error('Erro ao carregar pedidos')
-      setLoading(false)
-      return
-    }
-
-    setOrders(data as OrderWithItems[])
+    if (error) toast.error('Erro ao carregar pedidos')
+    else setOrders(data as OrderWithItems[])
     setLoading(false)
   }
 
@@ -164,23 +91,14 @@ export default function AdminPage() {
     setLoadingOrder(true)
     const { data, error } = await supabase
       .from('orders')
-      .select(`
-        *,
-        order_items (
-          *,
-          product:products (*)
-        ),
-        profile:profiles (*)
-      `)
+      .select(`*, order_items (*, product:products (*)), profile:profiles (*)`)
       .eq('id', orderId)
       .single()
 
     if (error) {
       toast.error('Erro ao carregar detalhes do pedido')
       setSelectedOrder(null)
-    } else {
-      setSelectedOrder(data as OrderWithItems)
-    }
+    } else setSelectedOrder(data as OrderWithItems)
     setLoadingOrder(false)
   }
 
@@ -190,6 +108,7 @@ export default function AdminPage() {
   }, [selectedOrderId])
 
   const subscribeToOrderUpdates = () => {
+    if (typeof window === 'undefined') return
     const subscription = supabase
       .channel('public:orders')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => fetchOrders())
@@ -199,69 +118,43 @@ export default function AdminPage() {
 
   const updateOrderStatus = async (orderId: string, action: string) => {
     const actionToStatus: Record<string, string> = {
-      accept: 'accepted',
-      reject: 'rejected',
-      preparing: 'preparing',
-      out_for_delivery: 'out_for_delivery',
-      delivered: 'delivered'
+      accept: 'accepted', reject: 'rejected', preparing: 'preparing', out_for_delivery: 'out_for_delivery', delivered: 'delivered'
     }
     const newStatus = actionToStatus[action]
     if (!newStatus) return toast.error('Ação inválida')
 
-    const { error } = await supabase
-      .from('orders')
-      .update({ status: newStatus })
-      .eq('id', orderId)
-
+    const { error } = await supabase.from('orders').update({ status: newStatus }).eq('id', orderId)
     if (error) toast.error('Erro ao atualizar pedido')
-    else {
-      toast.success('Status atualizado com sucesso!')
-      setSelectedOrderId(null)
-    }
+    else setSelectedOrderId(null)
   }
 
-  const formatPrice = (cents: number) =>
-    new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(cents / 100)
+  const formatPrice = (cents: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(cents / 100)
+  const formatDate = (dateString: string) => new Date(dateString).toLocaleString('pt-BR')
+  const getOrdersByStatus = (status: string) => orders.filter(order => order.status === status)
 
-  const formatDate = (dateString: string) =>
-    new Date(dateString).toLocaleString('pt-BR')
-
-  const getOrdersByStatus = (status: string) =>
-    orders.filter(order => order.status === status)
-
-  // Carregar usuários
+  // Carregar usuários e produtos
   useEffect(() => {
-    if (tab !== 'users') return
-    const fetchUsers = async () => {
-      let query = supabase.from('profiles').select('*')
-      if (debouncedUserFilter.name)
-        query = query.ilike('full_name', `%${debouncedUserFilter.name}%`)
-      if (debouncedUserFilter.phone)
-        query = query.ilike('phone', `%${debouncedUserFilter.phone}%`)
-      if (debouncedUserFilter.role)
-        query = query.eq('role', debouncedUserFilter.role)
-      const { data, error } = await query
-      if (!error) setUsers(data as User[])
-    }
-    fetchUsers()
-  }, [debouncedUserFilter, tab])
+    if (tab === 'users') fetchUsers()
+    else if (tab === 'products') fetchProducts()
+  }, [debouncedUserFilter, debouncedProductFilter, tab])
 
-  // Carregar produtos
-  useEffect(() => {
-    if (tab !== 'products') return
-    const fetchProducts = async () => {
-      let query = supabase.from('products').select('*')
-      if (debouncedProductFilter.name)
-        query = query.ilike('name', `%${debouncedProductFilter.name}%`)
-      if (debouncedProductFilter.active)
-        query = query.eq('active', debouncedProductFilter.active === 'true')
-      const { data, error } = await query
-      if (!error) setProducts(data as Product[])
-    }
-    fetchProducts()
-  }, [debouncedProductFilter, tab])
+  const fetchUsers = async () => {
+    let query = supabase.from('profiles').select('*')
+    if (debouncedUserFilter.name) query = query.ilike('full_name', `%${debouncedUserFilter.name}%`)
+    if (debouncedUserFilter.phone) query = query.ilike('phone', `%${debouncedUserFilter.phone}%`)
+    if (debouncedUserFilter.role) query = query.eq('role', debouncedUserFilter.role)
+    const { data, error } = await query
+    if (!error) setUsers(data as User[])
+  }
 
-  // Filtros de pedidos
+  const fetchProducts = async () => {
+    let query = supabase.from('products').select('*')
+    if (debouncedProductFilter.name) query = query.ilike('name', `%${debouncedProductFilter.name}%`)
+    if (debouncedProductFilter.active) query = query.eq('active', debouncedProductFilter.active === 'true')
+    const { data, error } = await query
+    if (!error) setProducts(data as Product[])
+  }
+
   const filteredOrders = orders.filter(order => {
     const statusOk = !orderFilters.status || order.status === orderFilters.status
     const paymentOk = !orderFilters.payment || order.payment_method === orderFilters.payment
@@ -269,339 +162,145 @@ export default function AdminPage() {
     return statusOk && paymentOk && dateOk
   })
 
-  if (loading) {
-    return (
-      <ProtectedRoute requiredRole="admin">
-        <div className="min-h-screen flex items-center justify-center p-6 bg-gradient-to-br from-red-600 via-red-900 to-gray-900">
-          <GlassCard className="p-8 text-center bg-white/80">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-500 mx-auto mb-4"></div>
-            <p className="text-red-700 font-semibold">Carregando pedidos...</p>
-          </GlassCard>
-        </div>
-      </ProtectedRoute>
-    )
-  }
+  if (loading) return (
+    <ProtectedRoute requiredRole="admin">
+      <div className="min-h-screen flex items-center justify-center p-6 bg-gradient-to-br from-red-600 via-red-900 to-gray-900">
+        <GlassCard className="p-8 text-center bg-white/80">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-500 mx-auto mb-4"></div>
+          <p className="text-red-700 font-semibold">Carregando pedidos...</p>
+        </GlassCard>
+      </div>
+    </ProtectedRoute>
+  )
 
   return (
     <ProtectedRoute requiredRole="admin">
       <div className="min-h-screen p-6 bg-gradient-to-br from-red-600 via-red-900 to-gray-900">
         <div className="max-w-7xl mx-auto">
-          <Tabs value={tab} onValueChange={v => setTab(v as 'orders' | 'users' | 'products')}>
-            <TabsList className="mb-8">
+          <Tabs value={tab} onValueChange={v => setTab(v as any)} className="mb-6">
+            <TabsList>
               <TabsTrigger value="orders">Pedidos</TabsTrigger>
               <TabsTrigger value="users">Usuários</TabsTrigger>
               <TabsTrigger value="products">Produtos</TabsTrigger>
             </TabsList>
 
-            {/* Pedidos */}
+            {/* PEDIDOS */}
             <TabsContent value="orders">
-              <div className="flex gap-4 mb-6 flex-wrap">
-                <select
-                  className="rounded px-2 py-1"
-                  value={orderFilters.status}
-                  onChange={e => setOrderFilters(f => ({ ...f, status: e.target.value }))}
-                >
-                  <option value="">Todos Status</option>
-                  {Object.entries(statusConfig).map(([k, v]) => (
-                    <option key={k} value={k}>{v.label}</option>
-                  ))}
-                </select>
-                <select
-                  className="rounded px-2 py-1"
-                  value={orderFilters.payment}
-                  onChange={e => setOrderFilters(f => ({ ...f, payment: e.target.value }))}
-                >
-                  <option value="">Todas Formas</option>
-                  <option value="cash">Dinheiro</option>
-                  <option value="card">Cartão</option>
-                  <option value="pix">PIX</option>
-                </select>
-                <Input
-                  type="date"
-                  value={orderFilters.date}
-                  onChange={e => setOrderFilters(f => ({ ...f, date: e.target.value }))}
-                  className="w-auto"
-                />
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-6 gap-6">
-                {Object.entries(statusConfig).map(([status, config], colIndex) => {
-                  const columnOrders = getOrdersByStatus(status)
-                  const Icon = config.icon
-                  return (
-                    <motion.div key={status} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: colIndex * 0.1 }} className="space-y-4">
-                      <GlassCard className={`p-4 shadow-lg border-2 border-white/10 bg-white/90`}>
-                        <div className="flex items-center gap-3">
-                          <div className={`p-2 rounded-full ${config.color} shadow`}><Icon className="w-5 h-5" /></div>
-                          <div>
-                            <h2 className="font-semibold text-gray-900 text-lg">{config.label}</h2>
-                            <p className="text-gray-600 text-sm">{columnOrders.length} pedidos</p>
-                          </div>
-                        </div>
-                      </GlassCard>
-
-                      <div className="space-y-3">
-                        {columnOrders.map((order, index) => (
-                          <motion.div key={order.id} initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: index * 0.05 }}>
-                            <GlassCard
-                              className={`p-4 cursor-pointer transition-all border-2 ${
-                                selectedOrderId === order.id
-                                  ? 'border-red-500 bg-red-50'
-                                  : 'border-transparent bg-white/80 hover:bg-red-100'
-                              }`}
-                              onClick={() => setSelectedOrderId(order.id)}
-                            >
-                              <div className="space-y-2">
-                                <div className="flex justify-between items-start">
-                                  <span className="text-red-700 font-bold text-base">#{order.id.slice(0, 8)}</span>
-                                  <span className="text-gray-500 text-xs">{formatDate(order.created_at)}</span>
-                                </div>
-                                <div className="text-gray-900">
-                                  <p className="font-semibold">{order.customer_name}</p>
-                                  <p className="text-xs text-gray-500">{order.customer_phone}</p>
-                                </div>
-                                <div className="flex justify-between items-center">
-                                  <span className="text-red-700 font-bold text-lg">{formatPrice(order.total_cents)}</span>
-                                  <div className="flex items-center gap-1">
-                                    {order.payment_method === 'cash' && <Banknote className="w-4 h-4 text-gray-700" />}
-                                    {order.payment_method === 'card' && <CreditCard className="w-4 h-4 text-gray-700" />}
-                                    {order.payment_method === 'pix' && <Smartphone className="w-4 h-4 text-gray-700" />}
-                                    {order.delivery_lat && <MapPin className="w-4 h-4 text-red-500" />}
-                                  </div>
-                                </div>
-                                <p className="text-gray-500 text-xs">{order.order_items?.length} itens</p>
-                              </div>
-                            </GlassCard>
-                          </motion.div>
-                        ))}
-                        {columnOrders.length === 0 && <div className="text-center text-gray-400 py-8 italic">Nenhum pedido</div>}
-                      </div>
-                    </motion.div>
-                  )
-                })}
-              </div>
-            </TabsContent>
-
-            {/* Usuários */}
-            <TabsContent value="users">
-              <div className="flex gap-4 mb-6 flex-wrap">
-                <Input
-                  placeholder="Nome"
-                  value={userFilter.name}
-                  onChange={e => setUserFilter(f => ({ ...f, name: e.target.value }))}
-                  className="w-auto"
-                />
-                <Input
-                  placeholder="Telefone"
-                  value={userFilter.phone}
-                  onChange={e => setUserFilter(f => ({ ...f, phone: e.target.value }))}
-                  className="w-auto"
-                />
-                <select
-                  className="rounded px-2 py-1"
-                  value={userFilter.role}
-                  onChange={e => setUserFilter(f => ({ ...f, role: e.target.value }))}
-                >
-                  <option value="">Todas Funções</option>
-                  <option value="admin">Admin</option>
-                  <option value="user">Usuário</option>
-                </select>
-              </div>
-              <div className="bg-white/80 rounded-xl shadow p-4">
-                <table className="w-full text-left">
-                  <thead>
-                    <tr>
-                      <th>Nome</th>
-                      <th>Telefone</th>
-                      <th>Função</th>
-                      <th>Criado em</th>
-                      <th>Ações</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {users.map(user => (
-                      <tr key={user.id}>
-                        <td>{user.full_name}</td>
-                        <td>{user.phone}</td>
-                        <td>{user.role}</td>
-                        <td>{formatDate(user.created_at)}</td>
-                        <td>
-                          <Button size="sm" onClick={() => {}}>Editar</Button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                {users.length === 0 && <div className="text-center text-gray-400 py-8 italic">Nenhum usuário encontrado</div>}
-              </div>
-            </TabsContent>
-
-            {/* Produtos */}
-            <TabsContent value="products">
-              <div className="flex gap-4 mb-6 flex-wrap">
-                <Input
-                  placeholder="Nome do produto"
-                  value={productFilter.name}
-                  onChange={e => setProductFilter(f => ({ ...f, name: e.target.value }))}
-                  className="w-auto"
-                />
-                <select
-                  className="rounded px-2 py-1"
-                  value={productFilter.active}
-                  onChange={e => setProductFilter(f => ({ ...f, active: e.target.value }))}
-                >
-                  <option value="">Todos</option>
-                  <option value="true">Ativos</option>
-                  <option value="false">Inativos</option>
-                </select>
-                <Button onClick={() => {}}>Novo Produto</Button>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                {products.map(product => (
-                  <GlassCard key={product.id} className="p-4 flex flex-col gap-2">
-                    <img src={product.image_url} alt={product.name} className="h-32 object-cover rounded mb-2" />
-                    <div className="font-bold">{product.name}</div>
-                    <div className="text-gray-600 text-sm">{product.description}</div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-red-700 font-bold">{formatPrice(product.price_cents)}</span>
-                      {product.original_price_cents > product.price_cents && (
-                        <span className="line-through text-gray-400">{formatPrice(product.original_price_cents)}</span>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Switch
-                        checked={product.active}
-                        onCheckedChange={async (checked) => {
-                          await supabase.from('products').update({ active: checked }).eq('id', product.id)
-                          setProducts(ps => ps.map(p => p.id === product.id ? { ...p, active: checked } : p))
-                        }}
-                      />
-                      <span className={product.active ? 'text-green-600' : 'text-gray-400'}>
-                        {product.active ? 'Ativo' : 'Inativo'}
-                      </span>
-                    </div>
-                    <Button size="sm" onClick={() => {}}>Editar</Button>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {Object.keys(statusConfig).map(status => (
+                  <GlassCard key={status} className="p-4">
+                    <h3 className="font-bold mb-2">{statusConfig[status as keyof typeof statusConfig].label}</h3>
+                    <ul>
+                      {getOrdersByStatus(status).map(order => (
+                        <li key={order.id} className="border-b border-gray-200 py-2 flex justify-between items-center">
+                          <span>{order.profile?.full_name} - {formatPrice(order.total_cents)}</span>
+                          <Button size="sm" onClick={() => setSelectedOrderId(order.id)}>Detalhes</Button>
+                        </li>
+                      ))}
+                    </ul>
                   </GlassCard>
                 ))}
-                {products.length === 0 && <div className="text-center text-gray-400 py-8 italic col-span-full">Nenhum produto encontrado</div>}
+              </div>
+            </TabsContent>
+
+            {/* USUÁRIOS */}
+            <TabsContent value="users">
+              <div className="flex flex-col gap-4">
+                <div className="flex gap-2">
+                  <Input placeholder="Nome" value={userFilter.name} onChange={e => setUserFilter(f => ({ ...f, name: e.target.value }))} />
+                  <Input placeholder="Telefone" value={userFilter.phone} onChange={e => setUserFilter(f => ({ ...f, phone: e.target.value }))} />
+                  <Input placeholder="Role" value={userFilter.role} onChange={e => setUserFilter(f => ({ ...f, role: e.target.value }))} />
+                </div>
+                <div className="overflow-auto">
+                  <table className="w-full table-auto text-left border-collapse border border-gray-300">
+                    <thead>
+                      <tr>
+                        <th className="border px-2 py-1">Nome</th>
+                        <th className="border px-2 py-1">Telefone</th>
+                        <th className="border px-2 py-1">Role</th>
+                        <th className="border px-2 py-1">Criado</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {users.map(u => (
+                        <tr key={u.id}>
+                          <td className="border px-2 py-1">{u.full_name}</td>
+                          <td className="border px-2 py-1">{u.phone}</td>
+                          <td className="border px-2 py-1">{u.role}</td>
+                          <td className="border px-2 py-1">{formatDate(u.created_at)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </TabsContent>
+
+            {/* PRODUTOS */}
+            <TabsContent value="products">
+              <div className="flex flex-col gap-4">
+                <div className="flex gap-2">
+                  <Input placeholder="Nome" value={productFilter.name} onChange={e => setProductFilter(f => ({ ...f, name: e.target.value }))} />
+                  <Input placeholder="Ativo" value={productFilter.active} onChange={e => setProductFilter(f => ({ ...f, active: e.target.value }))} />
+                </div>
+                <div className="overflow-auto">
+                  <table className="w-full table-auto text-left border-collapse border border-gray-300">
+                    <thead>
+                      <tr>
+                        <th className="border px-2 py-1">Nome</th>
+                        <th className="border px-2 py-1">Preço</th>
+                        <th className="border px-2 py-1">Ativo</th>
+                        <th className="border px-2 py-1">Criado</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {products.map(p => (
+                        <tr key={p.id}>
+                          <td className="border px-2 py-1">{p.name}</td>
+                          <td className="border px-2 py-1">{formatPrice(p.price_cents)}</td>
+                          <td className="border px-2 py-1">{p.active ? 'Sim' : 'Não'}</td>
+                          <td className="border px-2 py-1">{formatDate(p.created_at)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </TabsContent>
           </Tabs>
         </div>
 
-        {/* Modal Pedido */}
+        {/* MODAL PEDIDO */}
         <Dialog open={!!selectedOrderId} onOpenChange={() => setSelectedOrderId(null)}>
-          <DialogContent className="bg-white/95 backdrop-blur-xl border-red-200 text-gray-900 max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl">
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Detalhes do Pedido</DialogTitle>
+            </DialogHeader>
             {loadingOrder ? (
-              <div className="flex flex-col items-center justify-center min-h-[200px]">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-500 mb-4"></div>
-                <p className="text-red-700">Carregando pedido...</p>
-              </div>
-            ) : selectedOrder && (
-              <>
-                <DialogHeader>
-                  <DialogTitle className="text-2xl font-bold flex items-center gap-2 text-red-700">
-                    <Package className="w-6 h-6 text-red-500" />
-                    Pedido <span className="text-red-500">#{selectedOrder.id.slice(0, 8)}</span>
-                  </DialogTitle>
-                </DialogHeader>
-
-                <div className="space-y-6">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <h3 className="font-semibold mb-1 text-gray-700">Cliente</h3>
-                      <p className="font-medium">{selectedOrder.customer_name}</p>
-                      <p className="text-gray-500 text-sm">{selectedOrder.customer_phone}</p>
-                    </div>
-                    <div>
-                      <h3 className="font-semibold mb-1 text-gray-700">Pedido</h3>
-                      <p className="text-gray-500 text-sm">{formatDate(selectedOrder.created_at)}</p>
-                      <p className="font-bold text-lg text-red-700">{formatPrice(selectedOrder.total_cents)}</p>
-                    </div>
-                  </div>
-
-                  <div>
-                    <h3 className="font-semibold mb-1 text-gray-700">Pagamento</h3>
-                    <p className="flex items-center gap-2">
-                      {selectedOrder.payment_method === 'cash' && <><Banknote className="w-4 h-4" /> Dinheiro</>}
-                      {selectedOrder.payment_method === 'card' && <><CreditCard className="w-4 h-4" /> Cartão</>}
-                      {selectedOrder.payment_method === 'pix' && <><Smartphone className="w-4 h-4" /> PIX</>}
-                    </p>
-                    {selectedOrder.change_for_cents && <p className="text-gray-500 text-sm">Troco para: {formatPrice(selectedOrder.change_for_cents)}</p>}
-                  </div>
-
-                  <div>
-                    <h3 className="font-semibold mb-1 text-gray-700">Itens</h3>
-                    <div className="space-y-2">
-                      {selectedOrder.order_items?.map((item) => {
-                        // Garante tipagem e valores padrão para propriedades opcionais
-                        const safeProduct: Product = {
-                          id: item.product?.id ?? "",
-                          name: item.product?.name ?? "Produto",
-                          description: item.product?.description ?? "",
-                          price_cents: item.product?.price_cents ?? 0,
-                          original_price_cents: item.product?.original_price_cents ?? 0,
-                          image_url: item.product?.image_url ?? "",
-                          active: item.product?.active ?? false,
-                          created_at: item.product?.created_at ?? "",
-                        }
-                        return (
-                          <div key={item.id} className="flex justify-between items-center">
-                            <span>
-                              {item.quantity}x {safeProduct.name}
-                            </span>
-                            <span>
-                              {formatPrice(
-                                (item.unit_price_cents ?? safeProduct.price_cents ?? 0) * item.quantity
-                              )}
-                            </span>
-                          </div>
-                        )
-                      })}
-                    </div>
-                  </div>
-
-                  {selectedOrder.notes && (
-                    <div>
-                      <h3 className="font-semibold mb-1 text-gray-700">Observações</h3>
-                      <p className="bg-red-50 p-3 rounded-xl text-gray-700">{selectedOrder.notes}</p>
-                    </div>
-                  )}
-
-                  {selectedOrder.delivery_address && (
-                    <div>
-                      <h3 className="font-semibold mb-1 text-gray-700">Endereço</h3>
-                      <p className="bg-red-50 p-3 rounded-xl text-gray-700">{selectedOrder.delivery_address}</p>
-                    </div>
-                  )}
-
-                  {selectedOrder.delivery_lat && selectedOrder.delivery_lng && (
-                    <div>
-                      <h3 className="font-semibold mb-1 text-gray-700">Localização do Cliente</h3>
-                      <OrderMap latitude={selectedOrder.delivery_lat} longitude={selectedOrder.delivery_lng} customerName={selectedOrder.customer_name} />
-                    </div>
-                  )}
-
-                  <div className="flex gap-3 flex-wrap mt-4">
-                    {statusConfig[selectedOrder.status as keyof typeof statusConfig]?.actions.map(action => {
-                      const actionLabels: Record<string, string> = {
-                        accept: 'Aceitar Pedido',
-                        reject: 'Recusar Pedido',
-                        preparing: 'Iniciar Preparo',
-                        out_for_delivery: 'Saiu para Entrega',
-                        delivered: 'Marcar como Entregue'
-                      }
-                      const actionColors: Record<string, string> = {
-                        accept: 'bg-red-600 hover:bg-red-700',
-                        reject: 'bg-gray-400 hover:bg-gray-500',
-                        preparing: 'bg-yellow-500 hover:bg-yellow-600',
-                        out_for_delivery: 'bg-purple-500 hover:bg-purple-600',
-                        delivered: 'bg-green-600 hover:bg-green-700'
-                      }
-                      return <Button key={action} onClick={() => updateOrderStatus(selectedOrder.id, action)} className={`${actionColors[action]} text-white font-semibold shadow-md`}>{actionLabels[action]}</Button>
-                    })}
-                  </div>
+              <p>Carregando...</p>
+            ) : selectedOrder ? (
+              <div className="flex flex-col gap-4">
+                <p>Cliente: {selectedOrder.profile?.full_name}</p>
+                <p>Telefone: {selectedOrder.profile?.phone}</p>
+                <p>Total: {formatPrice(selectedOrder.total_cents)}</p>
+                <div>
+                  {selectedOrder.order_items.map(item => (
+                    <p key={item.id}>{item.product?.name} x{item.quantity} - {formatPrice(item.unit_price_cents)}</p>
+                  ))}
                 </div>
-              </>
+                <div className="flex gap-2 flex-wrap">
+                  {statusConfig[selectedOrder.status as keyof typeof statusConfig].actions.map(action => (
+                    <Button key={action} onClick={() => updateOrderStatus(selectedOrder.id, action)}>
+                      {action}
+                    </Button>
+                  ))}
+                </div>
+                <div className="h-64 mt-4">
+                  <OrderMap order={selectedOrder} />
+                </div>
+              </div>
+            ) : (
+              <p>Nenhum pedido selecionado.</p>
             )}
           </DialogContent>
         </Dialog>
