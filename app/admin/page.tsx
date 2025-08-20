@@ -532,23 +532,18 @@ export default function AdminPage() {
                   <div>
                     <h3 className="font-semibold mb-1 text-gray-700">Itens</h3>
                     <div className="space-y-2">
-                      {selectedOrder.order_items?.map((item) => {
-                        // Tipagem segura para OrderItem com product opcional
-                        const typedItem = item as OrderItem & { product?: Product | null }
-                        return (
-                          <div key={typedItem.id} className="flex justify-between items-center">
-                            <span>
-                              {typedItem.quantity}x {typedItem.product?.name ?? "Produto"}
-                            </span>
-                            <span>
-                              {formatPrice(
-                                typedItem.subtotal_cents ??
-                                (typedItem.unit_price_cents * typedItem.quantity)
-                              )}
-                            </span>
-                          </div>
-                        )
-                      })}
+                      {selectedOrder.order_items?.map((item) => (
+                        <div key={item.id} className="flex justify-between items-center">
+                          <span>
+                            {item.quantity}x {item.product?.name ?? "Produto"}
+                          </span>
+                          <span>
+                            {formatPrice(
+                              (item.unit_price_cents ?? 0) * item.quantity
+                            )}
+                          </span>
+                        </div>
+                      ))}
                     </div>
                   </div>
 

@@ -177,7 +177,7 @@ export default function CheckoutPage() {
                 <div key={item.product.id} className="flex items-center gap-4 border-b border-neutral-100 pb-3">
                   <div className="w-16 h-16 flex-shrink-0 rounded-lg overflow-hidden border border-neutral-200 bg-neutral-100">
                     <Image
-                      src={item.product.image_url}
+                      src={item.product.image_url || '/placeholder.png'}
                       alt={item.product.name}
                       width={64}
                       height={64}
@@ -214,7 +214,7 @@ export default function CheckoutPage() {
                 <Input {...form.register('address')} placeholder="Endereço (opcional)" className="bg-white border border-neutral-200 text-black placeholder:text-neutral-400" />
                 <Button
                   type="button"
-                  variant="outline"
+                  variant="secondary"
                   onClick={requestLocation}
                   className={`w-full border-2 ${location ? 'border-[#e11d48] bg-[#e11d48]/10 text-[#e11d48]' : 'border-neutral-200 text-black hover:border-[#e11d48] hover:text-[#e11d48]'}`}
                 >
