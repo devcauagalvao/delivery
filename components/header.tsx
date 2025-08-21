@@ -95,22 +95,35 @@ export default function Header({
                         <div className="flex items-center gap-4 flex-shrink-0">
                             {user ? (
                                 <>
-                                    <span className="text-gray-400 hidden sm:inline">Olá, {profile?.full_name}</span>
-                                    {profile?.role === 'admin' && (
+                                    <span className="text-gray-400 hidden sm:inline">
+                                        Olá, {profile?.full_name}
+                                    </span>
+
+                                    {profile?.role === "admin" && (
                                         <Link href="/admin">
                                             <Button variant="admin">
                                                 <Shield className="w-5 h-5 shrink-0" strokeWidth={4} />
+                                                <span className="ml-2 opacity-0 group-hover:opacity-100 transition-all duration-300 whitespace-nowrap">
+                                                    Admin
+                                                </span>
                                             </Button>
                                         </Link>
                                     )}
+
                                     <Button onClick={signOut} variant="logout">
                                         <LogOut className="w-5 h-5 shrink-0" strokeWidth={4} />
+                                        <span className="ml-2 opacity-0 group-hover:opacity-100 transition-all duration-300 whitespace-nowrap">
+                                            Sair
+                                        </span>
                                     </Button>
                                 </>
                             ) : (
                                 <Link href="/auth">
                                     <Button variant="login">
                                         <LogIn className="w-5 h-5 shrink-0" strokeWidth={4} />
+                                        <span className="ml-2 opacity-0 group-hover:opacity-100 transition-all duration-300 whitespace-nowrap">
+                                            Entrar
+                                        </span>
                                     </Button>
                                 </Link>
                             )}

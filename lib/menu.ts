@@ -1,13 +1,14 @@
 export interface Product {
-    id: string;
-    name: string;
-    price: number;
-    image: string;
-    active: boolean;
-    created_at: string;
-    updated_at: string;
-    description?: string;
-    ingredients?: string[];
+    id: string
+    name: string
+    price: number
+    image: string
+    active: boolean
+    created_at: string
+    updated_at: string
+    description?: string
+    ingredients?: string[]
+    categories?: string[]
 }
 
 export const menu: Product[] = [
@@ -20,6 +21,7 @@ export const menu: Product[] = [
         active: true,
         created_at: "2025-08-20",
         updated_at: "2025-08-20",
+        categories: ["classic"],
         ingredients: [
             "Carne bovina grelhada",
             "Cheddar",
@@ -37,6 +39,7 @@ export const menu: Product[] = [
         active: true,
         created_at: "2025-08-20",
         updated_at: "2025-08-20",
+        categories: ["classic"],
         ingredients: [
             "Hambúrguer de frango grelhado",
             "Muçarela derretida",
@@ -55,6 +58,7 @@ export const menu: Product[] = [
         active: true,
         created_at: "2025-08-20",
         updated_at: "2025-08-20",
+        categories: ["classic"],
         ingredients: [
             "Alface crocante",
             "Tomate suculento",
@@ -73,6 +77,7 @@ export const menu: Product[] = [
         active: true,
         created_at: "2025-08-20",
         updated_at: "2025-08-20",
+        categories: ["black"],
         ingredients: [
             "Duas carnes bovinas feitas no carvão",
             "Cheddar duplo",
@@ -91,6 +96,7 @@ export const menu: Product[] = [
         active: true,
         created_at: "2025-08-20",
         updated_at: "2025-08-20",
+        categories: ["black"],
         ingredients: [
             "Duas carnes bovinas feitas no carvão",
             "Cheddar derretido",
@@ -108,6 +114,7 @@ export const menu: Product[] = [
         active: true,
         created_at: "2025-08-20",
         updated_at: "2025-08-20",
+        categories: ["black"],
         ingredients: [
             "Hambúrguer de carne feito no carvão",
             "Muçarela derretida",
@@ -124,6 +131,7 @@ export const menu: Product[] = [
         active: true,
         created_at: "2025-08-20",
         updated_at: "2025-08-20",
+        categories: ["classic"],
         ingredients: [
             "Carne 100% bovina suculenta",
             "Queijo prato derretido",
@@ -140,6 +148,7 @@ export const menu: Product[] = [
         active: true,
         created_at: "2025-08-20",
         updated_at: "2025-08-20",
+        categories: ["black"],
         ingredients: [
             "Muçarela derretida",
             "Chimichurri artesanal",

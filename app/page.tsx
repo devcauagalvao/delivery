@@ -31,10 +31,10 @@ export default function HomePage() {
     const matchesSearch =
       product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (product.description && product.description.toLowerCase().includes(searchQuery.toLowerCase()))
+
     const matchesFilter =
-      filter === 'all' ||
-      (filter === 'classic' && product.name.toLowerCase().includes('clássico')) ||
-      (filter === 'black' && product.name.toLowerCase().includes('black'))
+      filter === 'all' || product.categories?.includes(filter)
+
     return matchesSearch && matchesFilter
   })
 
