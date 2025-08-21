@@ -99,16 +99,14 @@ export default function AuthPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
         >
-          <GlassCard className="p-8 bg-[#1a1a1a] border border-[#333]">
+          <GlassCard className="relative p-8 z-10 bg-white/5 border border-white/20 rounded-3xl backdrop-blur-xl">
             <div className="text-center mb-8 flex flex-col items-center">
               <img
                 src="/taurus-black-burguer/logo-taurus.png"
                 alt="Taurus Black Burguer's"
                 className="w-32 h-auto mb-2"
               />
-              <p className="text-white">
-                {isSignUp ? 'Crie sua conta' : 'Faça seu login'}
-              </p>
+              <p className="text-white">{isSignUp ? 'Crie sua conta' : 'Faça seu login'}</p>
             </div>
 
             {/* Formulário */}
@@ -122,7 +120,7 @@ export default function AuthPage() {
                       placeholder="Nome completo"
                       value={formData.fullName}
                       onChange={(e) => setFormData(prev => ({ ...prev, fullName: e.target.value }))}
-                      className="pl-12 bg-[#1a1a1a] border border-[#333] text-white placeholder:text-white/50 focus:border-white focus:ring-white"
+                      className="pl-12 bg-[#1a1a1a] border border-[#333] text-white placeholder:text-white/50 focus:border-white focus:ring-white rounded-full"
                       required
                     />
                   </div>
@@ -133,7 +131,7 @@ export default function AuthPage() {
                       placeholder="Telefone"
                       value={formData.phone}
                       onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
-                      className="pl-12 bg-[#1a1a1a] border border-[#333] text-white placeholder:text-white/50 focus:border-white focus:ring-white"
+                      className="pl-12 bg-[#1a1a1a] border border-[#333] text-white placeholder:text-white/50 focus:border-white focus:ring-white rounded-full"
                     />
                   </div>
                 </>
@@ -146,7 +144,7 @@ export default function AuthPage() {
                   placeholder="Email"
                   value={formData.email}
                   onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                  className="pl-12 bg-[#1a1a1a] border border-[#333] text-white placeholder:text-white/50 focus:border-white focus:ring-white"
+                  className="pl-12 bg-[#1a1a1a] border border-[#333] text-white placeholder:text-white/50 focus:border-white focus:ring-white rounded-full"
                   required
                 />
               </div>
@@ -158,12 +156,12 @@ export default function AuthPage() {
                   placeholder="Senha"
                   value={formData.password}
                   onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
-                  className="pl-12 pr-12 bg-[#1a1a1a] border border-[#333] text-white placeholder:text-white/50 focus:border-white focus:ring-white"
+                  className="pl-12 pr-12 bg-[#1a1a1a] border border-[#333] text-white placeholder:text-white/50 focus:border-white focus:ring-white rounded-full"
                   required
                 />
                 <Button
                   type="button"
-                  variant="ghost"
+                  variant="default"
                   size="sm"
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-2 top-1/2 transform -translate-y-1/2 text-white/70 hover:text-white p-2"

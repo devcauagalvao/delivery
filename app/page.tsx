@@ -9,6 +9,7 @@ import { ProductModal } from '@/components/product-modal'
 import { menu, Product } from '@/lib/menu'
 import { useAuth } from '@/lib/auth'
 import Header from '../components/header'
+import { Hamburger } from 'lucide-react'
 
 export default function HomePage() {
   const [products, setProducts] = useState<Product[]>([])
@@ -39,7 +40,18 @@ export default function HomePage() {
   })
 
   if (loading) {
-    return <div className="p-6 bg-black text-gray-300 min-h-screen">Carregando...</div>
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-black text-[#cc9b3b]">
+        <motion.div
+          animate={{ rotate: 360 }}
+          transition={{ repeat: Infinity, duration: 1 }}
+          className="mb-4"
+        >
+          <Hamburger className="w-16 h-16" />
+        </motion.div>
+        <span className="text-lg font-bold">Carregando...</span>
+      </div>
+    )
   }
 
   return (
