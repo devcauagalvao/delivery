@@ -74,7 +74,7 @@ export default function HomePage() {
             bg-[#1a1a1a]
             text-gray-300
             border border-[#333333]
-            rounded-md
+            rounded-full
             px-4 py-2
             focus:outline-none
             focus:ring-1 focus:ring-[#cc9b3b]

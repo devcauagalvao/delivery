@@ -8,9 +8,10 @@ export default function Footer() {
     const currentYear = new Date().getFullYear()
 
     return (
-        <footer className="w-full py-6 bg-[#111111]/40 backdrop-blur-md backdrop-saturate-150 border-t border-[#222] text-gray-300 flex flex-col sm:flex-row items-center justify-between px-6 gap-4">
+        <footer className="w-full py-6 bg-[#111111]/40 backdrop-blur-md backdrop-saturate-150 border-t border-[#222] text-gray-300 flex flex-col sm:flex-row items-center sm:items-start justify-between px-6 gap-4 sm:gap-0">
+
             {/* Esquerda: Copyright com link */}
-            <p className="text-sm">
+            <p className="text-sm text-center sm:text-left">
                 &copy; {currentYear}{' '}
                 <Link
                     href="https://www.glvinformatica.com.br"
@@ -24,7 +25,7 @@ export default function Footer() {
             </p>
 
             {/* Direita: Redes sociais */}
-            <div className="flex gap-6">
+            <div className="flex flex-wrap justify-center sm:justify-end gap-4 sm:gap-6">
                 <a
                     href="https://wa.me/5511934864733"
                     target="_blank"

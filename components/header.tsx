@@ -97,11 +97,10 @@ export default function Header({
                         </div>
                         <div className="flex items-center gap-4 flex-shrink-0">
                             {user ? (
-                                <>
-                                    <span className="text-gray-400 hidden sm:inline">
-                                        Olá, {profile?.full_name}
-                                    </span>
+                                <div className="flex items-center gap-4">
+                                    <span className="text-gray-400 hidden sm:inline">Olá, {profile?.full_name}</span>
 
+                                    {/* Botão Admin se o role for admin */}
                                     {profile?.role === "admin" && (
                                         <Link href="/admin">
                                             <Button variant="admin">
@@ -113,13 +112,14 @@ export default function Header({
                                         </Link>
                                     )}
 
+                                    {/* Botão Sair sempre que o usuário estiver logado */}
                                     <Button onClick={signOut} variant="logout">
                                         <LogOut className="w-5 h-5 shrink-0" strokeWidth={4} />
                                         <span className="ml-2 opacity-0 group-hover:opacity-100 transition-all duration-300 whitespace-nowrap">
                                             Sair
                                         </span>
                                     </Button>
-                                </>
+                                </div>
                             ) : (
                                 <Link href="/auth">
                                     <Button variant="login">
