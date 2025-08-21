@@ -142,9 +142,9 @@ export default function CheckoutPage() {
 
   if (state.items.length === 0) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-6 bg-white">
-        <GlassCard className="p-8 text-center bg-white border border-neutral-200">
-          <p className="text-black text-lg mb-4">Carrinho vazio</p>
+      <div className="min-h-screen flex items-center justify-center p-6 bg-[#1a1a1a]">
+        <GlassCard className="p-8 text-center bg-[#1a1a1a] border border-neutral-200">
+          <p className="text-white text-lg mb-4">Carrinho vazio</p>
           <Link href="/">
             <Button className="bg-[#e11d48] text-white hover:bg-[#be123c]">Voltar ao cardápio</Button>
           </Link>
@@ -154,28 +154,28 @@ export default function CheckoutPage() {
   }
 
   return (
-    <div className="min-h-screen p-6 bg-white">
+    <div className="min-h-screen p-6 bg-[#1a1a1a]">
       <div className="max-w-2xl mx-auto">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
           <div className="flex items-center gap-4 mb-8">
             <Link href="/">
-              <Button variant="ghost" size="sm" className="text-black/70 hover:text-[#e11d48]">
+              <Button variant="default" size="sm" className="text-white hover:text-white">
                 <ArrowLeft className="w-5 h-5" />
               </Button>
             </Link>
             <div>
-              <h1 className="text-3xl font-bold text-black">Finalizar Pedido</h1>
-              <p className="text-black/70">Complete os dados para entrega</p>
+              <h1 className="text-3xl font-bold text-white">Finalizar Pedido</h1>
+              <p className="text-white/70">Complete os dados para entrega</p>
             </div>
           </div>
 
           {/* Resumo do Pedido */}
-          <GlassCard className="p-6 bg-white border border-neutral-200">
-            <h2 className="text-xl font-semibold text-black mb-4">Produtos do Pedido</h2>
+          <GlassCard className="p-6 bg-[#1a1a1a]/50 border border-white/20 text-white">
+            <h2 className="text-xl font-semibold text-white mb-4">Produtos do Pedido</h2>
             <div className="space-y-4 mb-4">
               {state.items.map(item => (
-                <div key={item.product.id} className="flex items-center gap-4 border-b border-neutral-100 pb-3">
-                  <div className="w-16 h-16 flex-shrink-0 rounded-lg overflow-hidden border border-neutral-200 bg-neutral-100">
+                <div key={item.product.id} className="flex items-center gap-4 border-b border-white/20 pb-3">
+                  <div className="w-16 h-16 flex-shrink-0 rounded-lg overflow-hidden border border-white/20 bg-[#111]">
                     <Image
                       src={item.product.image_url || '/placeholder.png'}
                       alt={item.product.name}
@@ -186,83 +186,83 @@ export default function CheckoutPage() {
                   </div>
                   <div className="flex-1">
                     <div className="flex justify-between items-center">
-                      <span className="font-semibold text-black">{item.product.name}</span>
-                      <span className="text-black/80">{formatPrice(item.product.price_cents)}</span>
+                      <span className="font-semibold text-white">{item.product.name}</span>
+                      <span className="text-[#cc9b3b]">{formatPrice(item.product.price_cents)}</span>
                     </div>
                     <div className="flex justify-between items-center text-sm mt-1">
-                      <span className="text-black/60">Qtd: {item.quantity}</span>
-                      <span className="text-[#e11d48] font-bold">{formatPrice(item.product.price_cents * item.quantity)}</span>
+                      <span className="text-white/70">Qtd: {item.quantity}</span>
+                      <span className="font-bold text-[#cc9b3b]">{formatPrice(item.product.price_cents * item.quantity)}</span>
                     </div>
                   </div>
                 </div>
               ))}
             </div>
-            <div className="border-t border-neutral-200 pt-4 flex justify-between text-[#e11d48] font-bold text-lg">
+            <div className="border-t border-white/20 pt-4 flex justify-between font-bold text-[#cc9b3b] text-lg">
               <span>Total</span>
               <span>{formatPrice(state.total)}</span>
             </div>
           </GlassCard>
 
           {/* Formulário */}
-          <GlassCard className="p-6 bg-white border border-neutral-200">
+          <GlassCard className="p-6 bg-[#1a1a1a]/50 border border-white/20 text-white">
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               {/* Dados de Entrega */}
               <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-black">Informações de Entrega</h3>
-                <Input {...form.register('fullName')} placeholder="Nome completo" className="bg-white border border-neutral-200 text-black placeholder:text-neutral-400" />
-                <Input {...form.register('phone')} placeholder="Telefone" className="bg-white border border-neutral-200 text-black placeholder:text-neutral-400" />
-                <Input {...form.register('address')} placeholder="Endereço (opcional)" className="bg-white border border-neutral-200 text-black placeholder:text-neutral-400" />
+                <h3 className="text-lg font-semibold text-white">Informações de Entrega</h3>
+                <Input {...form.register('fullName')} placeholder="Nome completo" className="bg-[#111] border border-white/20 text-white placeholder:text-white/50 rounded-2xl" />
+                <Input {...form.register('phone')} placeholder="Telefone" className="bg-[#111] border border-white/20 text-white placeholder:text-white/50 rounded-2xl" />
+                <Input {...form.register('address')} placeholder="Endereço (opcional)" className="bg-[#111] border border-white/20 text-white placeholder:text-white/50 rounded-2xl" />
                 <Button
                   type="button"
                   variant="secondary"
                   onClick={requestLocation}
-                  className={`w-full border-2 ${location ? 'border-[#e11d48] bg-[#e11d48]/10 text-[#e11d48]' : 'border-neutral-200 text-black hover:border-[#e11d48] hover:text-[#e11d48]'}`}
+                  className={`w-full border-2 flex items-center justify-center gap-2 ${location ? 'border-[#cc9b3b] bg-[#cc9b3b]/10 text-[#cc9b3b]' : 'border-white/20 text-white hover:border-[#cc9b3b] hover:text-[#cc9b3b] rounded-2xl'}`}
                 >
-                  <MapPin className="w-5 h-5 mr-2" />
+                  <MapPin className="w-5 h-5" />
                   {location ? 'Localização Capturada ✓' : 'Usar Minha Localização Atual'}
                 </Button>
-                {locationError && <p className="text-[#e11d48] text-sm">{locationError}</p>}
-                {location && <p className="text-green-600 text-sm">Localização salva para entrega precisa!</p>}
+                {locationError && <p className="text-[#cc9b3b] text-sm">{locationError}</p>}
+                {location && <p className="text-[#cc9b3b] text-sm">Localização salva para entrega!</p>}
               </div>
 
               {/* Forma de Pagamento */}
               <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-black">Forma de Pagamento</h3>
+                <h3 className="text-lg font-semibold text-white">Forma de Pagamento</h3>
                 <div className="grid grid-cols-1 gap-3">
                   {['cash', 'card', 'pix'].map(method => {
                     const Icon = method === 'cash' ? Banknote : method === 'card' ? CreditCard : Smartphone
                     const label = method === 'cash' ? 'Dinheiro' : method === 'card' ? 'Cartão' : 'PIX'
                     return (
-                      <label key={method} className={`flex items-center gap-3 p-4 rounded-2xl cursor-pointer border-2 transition-all ${paymentMethod === method ? 'border-[#e11d48] bg-[#e11d48]/10' : 'border-neutral-200 bg-white'}`}>
+                      <label key={method} className={`flex items-center gap-3 p-4 rounded-2xl cursor-pointer border-2 transition-all ${paymentMethod === method ? 'border-[#cc9b3b] bg-[#cc9b3b]/10' : 'border-white/20 bg-[#111]'}`}>
                         <input type="radio" value={method} {...form.register('paymentMethod')} className="sr-only" />
-                        <Icon className={`w-6 h-6 ${paymentMethod === method ? 'text-[#e11d48]' : 'text-black'}`} />
+                        <Icon className={`w-6 h-6 ${paymentMethod === method ? 'text-[#cc9b3b]' : 'text-white'}`} />
                         <div>
-                          <div className={`font-medium ${paymentMethod === method ? 'text-[#e11d48]' : 'text-black'}`}>{label}</div>
+                          <div className={`font-medium ${paymentMethod === method ? 'text-[#cc9b3b]' : 'text-white'}`}>{label}</div>
                         </div>
                       </label>
                     )
                   })}
                   {paymentMethod === 'cash' && (
-                    <Input {...form.register('changeFor')} type="number" step="0.01" placeholder="Troco para quanto? (opcional)" className="bg-white border border-neutral-200 text-black placeholder:text-neutral-400" />
+                    <Input {...form.register('changeFor')} type="number" step="0.01" placeholder="Troco para quanto? (opcional)" className="bg-[#111] border border-white/20 text-white rounded-2xl placeholder:text-white/50" />
                   )}
                 </div>
               </div>
 
               {/* Observações */}
               <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-black">Observações</h3>
-                <Textarea {...form.register('notes')} placeholder="Observações sobre o pedido (opcional)" className="bg-white border border-neutral-200 text-black placeholder:text-neutral-400 resize-none" rows={3} />
+                <h3 className="text-lg font-semibold text-white">Observações</h3>
+                <Textarea {...form.register('notes')} placeholder="Observações sobre o pedido (opcional)" className="bg-[#111] border border-white/20 text-white rounded-2xl placeholder:text-white/50 resize-none" rows={3} />
               </div>
 
               <Button
                 type="submit"
                 disabled={loading || !location}
-                className={`w-full rounded-full py-4 text-lg font-semibold ${!location ? 'bg-neutral-300 text-neutral-500 cursor-not-allowed' : 'bg-[#e11d48] hover:bg-[#be123c] text-white'}`}
+                className={`w-full rounded-full py-4 text-lg font-semibold ${!location ? 'bg-white/20 text-white/50 cursor-not-allowed' : 'bg-[#cc9b3b] hover:bg-[#b88b30] text-white'}`}
               >
                 {loading ? 'Processando...' : `Confirmar Pedido - ${formatPrice(state.total)}`}
               </Button>
               {!location && (
-                <p className="text-[#e11d48] text-center text-sm mt-2">É obrigatório capturar sua localização para finalizar o pedido.</p>
+                <p className="text-[#cc9b3b] text-center text-sm mt-2">É obrigatório capturar sua localização para finalizar o pedido.</p>
               )}
             </form>
           </GlassCard>

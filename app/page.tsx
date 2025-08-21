@@ -6,6 +6,7 @@ import { ProductCard } from '@/components/product-card'
 import { CartDrawer } from '@/components/cart-drawer'
 import { CartFab } from '@/components/cart-fab'
 import { ProductModal } from '@/components/product-modal'
+import Footer from '@/components/footer'
 import { menu, Product } from '@/lib/menu'
 import { useAuth } from '@/lib/auth'
 import Header from '../components/header'
@@ -42,11 +43,7 @@ export default function HomePage() {
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-black text-[#cc9b3b]">
-        <motion.div
-          animate={{ rotate: 360 }}
-          transition={{ repeat: Infinity, duration: 1 }}
-          className="mb-4"
-        >
+        <motion.div className="mb-4" >
           <Hamburger className="w-16 h-16" />
         </motion.div>
         <span className="text-lg font-bold">Carregando...</span>
@@ -64,7 +61,7 @@ export default function HomePage() {
         signOut={signOut}
       />
 
-      {/* Filtro de categorias em dropdown no canto superior direito */}
+      {/* Filtro de categorias */}
       <div className="w-full px-4 sm:px-6 lg:px-8 mt-6 flex justify-between items-center">
         <span className="text-sm text-gray-400">
           {filteredProducts.length} produto{filteredProducts.length !== 1 && 's'} encontrado
@@ -90,7 +87,7 @@ export default function HomePage() {
         </select>
       </div>
 
-      {/* Products */}
+      {/* Produtos */}
       <main className="w-full px-4 sm:px-6 lg:px-8 py-6">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -117,6 +114,8 @@ export default function HomePage() {
       {/* FAB + Drawer */}
       <CartFab onClick={() => setCartOpen(true)} />
       <CartDrawer isOpen={cartOpen} onClose={() => setCartOpen(false)} />
+
+      <Footer />
     </div>
   )
 }

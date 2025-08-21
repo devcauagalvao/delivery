@@ -84,12 +84,15 @@ export default function Header({
 
                     <div className="hidden md:flex flex-1 items-center gap-4">
                         <div className="flex-1 relative">
-                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5">
+                                <Search className="w-5 h-5" />
+                            </span>
+
                             <Input
                                 placeholder="Buscar hambúrgueres..."
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                className="pl-12 pr-4 h-12 w-full bg-[#1a1a1a] border border-[#333333] text-gray-200 placeholder:text-gray-500 rounded-xl shadow-inner focus:border-[#cc9b3b] focus:ring-4 focus:ring-[#cc9b3b] focus-visible:outline-none"
+                                className="pl-12 pr-4 h-12 w-full bg-[#1a1a1a]/60 border border-[#333333] text-gray-200 placeholder:text-gray-500 rounded-2xl shadow-md shadow-black/40 backdrop-blur-sm focus:border-[#cc9b3b] focus:ring-4 focus:ring-[#cc9b3b]/40 focus-visible:outline-none transition-all duration-300 hover:bg-[#1a1a1a]/70"
                             />
                         </div>
                         <div className="flex items-center gap-4 flex-shrink-0">

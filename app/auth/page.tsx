@@ -99,7 +99,7 @@ export default function AuthPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
         >
-          <GlassCard className="relative p-8 z-10 bg-white/5 border border-white/20 rounded-3xl backdrop-blur-xl">
+          <GlassCard className="relative p-8 z-10 bg-[#1a1a1a]/40 backdrop-blur-md backdrop-saturate-100 border border-white/20 rounded-3xl">
             <div className="text-center mb-8 flex flex-col items-center">
               <img
                 src="/taurus-black-burguer/logo-taurus.png"
@@ -120,7 +120,7 @@ export default function AuthPage() {
                       placeholder="Nome completo"
                       value={formData.fullName}
                       onChange={(e) => setFormData(prev => ({ ...prev, fullName: e.target.value }))}
-                      className="pl-12 bg-[#1a1a1a] border border-[#333] text-white placeholder:text-white/50 focus:border-white focus:ring-white rounded-full"
+                      className="pl-12 bg-[#1a1a1a]/20 border border-[#333] text-white placeholder:text-white/50 focus:border-white focus:ring-white rounded-full"
                       required
                     />
                   </div>
@@ -131,7 +131,7 @@ export default function AuthPage() {
                       placeholder="Telefone"
                       value={formData.phone}
                       onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
-                      className="pl-12 bg-[#1a1a1a] border border-[#333] text-white placeholder:text-white/50 focus:border-white focus:ring-white rounded-full"
+                      className="pl-12 bg-[#1a1a1a]/20 border border-[#333] text-white placeholder:text-white/50 focus:border-white focus:ring-white rounded-full"
                     />
                   </div>
                 </>
@@ -144,7 +144,7 @@ export default function AuthPage() {
                   placeholder="Email"
                   value={formData.email}
                   onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                  className="pl-12 bg-[#1a1a1a] border border-[#333] text-white placeholder:text-white/50 focus:border-white focus:ring-white rounded-full"
+                  className="pl-12 bg-[#1a1a1a]/20 border border-[#333] text-white placeholder:text-white/50 focus:border-white focus:ring-white rounded-full"
                   required
                 />
               </div>
@@ -156,7 +156,7 @@ export default function AuthPage() {
                   placeholder="Senha"
                   value={formData.password}
                   onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
-                  className="pl-12 pr-12 bg-[#1a1a1a] border border-[#333] text-white placeholder:text-white/50 focus:border-white focus:ring-white rounded-full"
+                  className="pl-12 pr-12 bg-[#1a1a1a]/20 border border-[#333] text-white placeholder:text-white/50 focus:border-white focus:ring-white rounded-full"
                   required
                 />
                 <Button
