@@ -3,7 +3,7 @@
 import type { Product as MenuProduct } from "@/lib/menu"
 import type { Product as SupabaseProduct } from "@/lib/supabase"
 import { Button } from './ui/button'
-import { Plus, ShoppingBag } from 'lucide-react'
+import { Plus, ShoppingBag, CheckCircle } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { useCart } from '@/hooks/use-cart'
 import { toast } from 'sonner'
@@ -13,7 +13,6 @@ interface ProductCardProps {
   product: MenuProduct
 }
 
-// Converte MenuProduct em SupabaseProduct
 const mapMenuToSupabaseProduct = (product: MenuProduct): SupabaseProduct => ({
   id: product.id,
   name: product.name,
@@ -38,7 +37,12 @@ export function ProductCard({ product }: ProductCardProps) {
   const handleAddToCart = () => {
     const supabaseProduct = mapMenuToSupabaseProduct(product)
     addItem(supabaseProduct)
-    toast.success(`${product.name} adicionado ao carrinho!`)
+    toast(`${product.name} adicionado ao carrinho!`, {
+      description: 'Você pode finalizar a compra no carrinho.',
+      duration: 3000,
+      icon: <CheckCircle className="text-white mr-4" />,
+      className: 'bg-green-600 text-white border border-green-700',
+    })
   }
 
   return (
@@ -80,9 +84,12 @@ export function ProductCard({ product }: ProductCardProps) {
           </span>
 
           <Button
-            onClick={handleAddToCart}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleAddToCart();
+            }}
             size="sm"
-            className="bg-[#880000] hover:bg-[#aa0000] text-gray-100 rounded-full p-3 shadow-md transition-all"
+            className="bg-red-500 hover:bg-red-600 text-gray-100 rounded-full p-3 shadow-md transition-all"
           >
             <Plus className="w-5 h-5" strokeWidth={4} />
           </Button>

@@ -30,7 +30,6 @@ export default function AuthPage() {
 
     try {
       if (isSignUp) {
-        // Sign up
         const { data, error } = await supabase.auth.signUp({
           email: formData.email,
           password: formData.password,
@@ -39,7 +38,6 @@ export default function AuthPage() {
         if (error) throw error
 
         if (data.user) {
-          // Create profile
           const { error: profileError } = await supabase
             .from('profiles')
             .insert([
@@ -57,7 +55,6 @@ export default function AuthPage() {
           router.push('/')
         }
       } else {
-        // Sign in
         const { error } = await supabase.auth.signInWithPassword({
           email: formData.email,
           password: formData.password,
@@ -76,18 +73,18 @@ export default function AuthPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-6">
+    <div className="min-h-screen flex items-center justify-center p-6 bg-[#1a1a1a]">
       <div className="w-full max-w-md">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
         >
-          <GlassCard className="p-8">
+          <GlassCard className="p-8 bg-[#1a1a1a] border border-[#333]">
             <div className="text-center mb-8">
               <h1 className="text-3xl font-bold text-white mb-2">
                 Black Bull Burgers
               </h1>
-              <p className="text-white/70">
+              <p className="text-white">
                 {isSignUp ? 'Crie sua conta' : 'Faça seu login'}
               </p>
             </div>
@@ -96,50 +93,50 @@ export default function AuthPage() {
               {isSignUp && (
                 <>
                   <div className="relative">
-                    <User className="absolute left-4 top-1/2 transform -translate-y-1/2 text-white/50 w-5 h-5" />
+                    <User className="absolute left-4 top-1/2 transform -translate-y-1/2 text-white w-5 h-5" />
                     <Input
                       type="text"
                       placeholder="Nome completo"
                       value={formData.fullName}
                       onChange={(e) => setFormData(prev => ({ ...prev, fullName: e.target.value }))}
-                      className="pl-12 bg-white/10 border-white/15 text-white placeholder:text-white/50"
+                      className="pl-12 bg-[#1a1a1a] border border-[#333] text-white placeholder:text-white/50 focus:border-white focus:ring-white"
                       required
                     />
                   </div>
 
                   <div className="relative">
-                    <Phone className="absolute left-4 top-1/2 transform -translate-y-1/2 text-white/50 w-5 h-5" />
+                    <Phone className="absolute left-4 top-1/2 transform -translate-y-1/2 text-white w-5 h-5" />
                     <Input
                       type="tel"
                       placeholder="Telefone"
                       value={formData.phone}
                       onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
-                      className="pl-12 bg-white/10 border-white/15 text-white placeholder:text-white/50"
+                      className="pl-12 bg-[#1a1a1a] border border-[#333] text-white placeholder:text-white/50 focus:border-white focus:ring-white"
                     />
                   </div>
                 </>
               )}
 
               <div className="relative">
-                <Mail className="absolute left-4 top-1/2 transform -translate-y-1/2 text-white/50 w-5 h-5" />
+                <Mail className="absolute left-4 top-1/2 transform -translate-y-1/2 text-white w-5 h-5" />
                 <Input
                   type="email"
                   placeholder="Email"
                   value={formData.email}
                   onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                  className="pl-12 bg-white/10 border-white/15 text-white placeholder:text-white/50"
+                  className="pl-12 bg-[#1a1a1a] border border-[#333] text-white placeholder:text-white/50 focus:border-white focus:ring-white"
                   required
                 />
               </div>
 
               <div className="relative">
-                <Lock className="absolute left-4 top-1/2 transform -translate-y-1/2 text-white/50 w-5 h-5" />
+                <Lock className="absolute left-4 top-1/2 transform -translate-y-1/2 text-white w-5 h-5" />
                 <Input
                   type={showPassword ? 'text' : 'password'}
                   placeholder="Senha"
                   value={formData.password}
                   onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
-                  className="pl-12 pr-12 bg-white/10 border-white/15 text-white placeholder:text-white/50"
+                  className="pl-12 pr-12 bg-[#1a1a1a] border border-[#333] text-white placeholder:text-white/50 focus:border-white focus:ring-white"
                   required
                 />
                 <Button
@@ -147,7 +144,7 @@ export default function AuthPage() {
                   variant="ghost"
                   size="sm"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-2 top-1/2 transform -translate-y-1/2 text-white/50 hover:text-white p-2"
+                  className="absolute right-2 top-1/2 transform -translate-y-1/2 text-white/70 hover:text-white p-2"
                 >
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </Button>
@@ -156,7 +153,7 @@ export default function AuthPage() {
               <Button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-blue-500 hover:bg-blue-600 text-white rounded-full py-3"
+                className="w-full bg-[#cc9b3b] hover:bg-[#b68830] text-black font-bold rounded-full py-3"
               >
                 {loading ? 'Aguarde...' : (isSignUp ? 'Criar Conta' : 'Entrar')}
               </Button>
@@ -166,17 +163,16 @@ export default function AuthPage() {
               <button
                 type="button"
                 onClick={() => setIsSignUp(!isSignUp)}
-                className="text-blue-400 hover:text-blue-300 underline"
+                className="text-white hover:underline"
               >
-                {isSignUp 
-                  ? 'Já tem conta? Faça login' 
-                  : 'Não tem conta? Cadastre-se'
-                }
+                {isSignUp
+                  ? 'Já tem conta? Faça login'
+                  : 'Não tem conta? Cadastre-se'}
               </button>
             </div>
 
             <div className="mt-4 text-center">
-              <Link href="/" className="text-white/70 hover:text-white underline">
+              <Link href="/" className="text-white hover:text-white underline">
                 Voltar ao cardápio
               </Link>
             </div>

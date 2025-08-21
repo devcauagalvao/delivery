@@ -7,6 +7,7 @@ export interface Product {
     created_at: string;
     updated_at: string;
     description?: string;
+    ingredients?: string[];
 }
 
 export const menu: Product[] = [
@@ -19,6 +20,13 @@ export const menu: Product[] = [
         active: true,
         created_at: "2025-08-20",
         updated_at: "2025-08-20",
+        ingredients: [
+            "Carne bovina grelhada",
+            "Cheddar",
+            "Bacon crocante",
+            "Picles de cebola roxa",
+            "Pão brioche"
+        ]
     },
     {
         id: "2",
@@ -29,6 +37,14 @@ export const menu: Product[] = [
         active: true,
         created_at: "2025-08-20",
         updated_at: "2025-08-20",
+        ingredients: [
+            "Hambúrguer de frango grelhado",
+            "Muçarela derretida",
+            "Alface crocante",
+            "Cebola branca",
+            "Maionese branca",
+            "Pão brioche selado"
+        ]
     },
     {
         id: "3",
@@ -39,6 +55,14 @@ export const menu: Product[] = [
         active: true,
         created_at: "2025-08-20",
         updated_at: "2025-08-20",
+        ingredients: [
+            "Alface crocante",
+            "Tomate suculento",
+            "Cebola roxa",
+            "Queijo prato",
+            "Hambúrguer artesanal grelhado",
+            "Pão brioche macio"
+        ]
     },
     {
         id: "4",
@@ -49,6 +73,14 @@ export const menu: Product[] = [
         active: true,
         created_at: "2025-08-20",
         updated_at: "2025-08-20",
+        ingredients: [
+            "Duas carnes bovinas feitas no carvão",
+            "Cheddar duplo",
+            "Cebola roxa",
+            "Bacon crocante",
+            "Barbecue artesanal",
+            "Pão brioche"
+        ]
     },
     {
         id: "5",
@@ -59,6 +91,13 @@ export const menu: Product[] = [
         active: true,
         created_at: "2025-08-20",
         updated_at: "2025-08-20",
+        ingredients: [
+            "Duas carnes bovinas feitas no carvão",
+            "Cheddar derretido",
+            "Cebola roxa",
+            "Barbecue artesanal",
+            "Pão brioche"
+        ]
     },
     {
         id: "6",
@@ -69,6 +108,12 @@ export const menu: Product[] = [
         active: true,
         created_at: "2025-08-20",
         updated_at: "2025-08-20",
+        ingredients: [
+            "Hambúrguer de carne feito no carvão",
+            "Muçarela derretida",
+            "Cebola caramelizada",
+            "Pão brioche macio"
+        ]
     },
     {
         id: "7",
@@ -79,6 +124,12 @@ export const menu: Product[] = [
         active: true,
         created_at: "2025-08-20",
         updated_at: "2025-08-20",
+        ingredients: [
+            "Carne 100% bovina suculenta",
+            "Queijo prato derretido",
+            "Picles crocante",
+            "Pão brioche artesanal"
+        ]
     },
     {
         id: "8",
@@ -89,5 +140,12 @@ export const menu: Product[] = [
         active: true,
         created_at: "2025-08-20",
         updated_at: "2025-08-20",
-    },
-];
+        ingredients: [
+            "Muçarela derretida",
+            "Chimichurri artesanal",
+            "Maionese branca",
+            "Cebola roxa",
+            "Pão brioche"
+        ]
+    }
+]

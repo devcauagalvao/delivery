@@ -29,7 +29,7 @@ export function CartFab({ onClick }: CartFabProps) {
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
         onClick={onClick}
-        className="fixed bottom-6 right-6 bg-blue-500 hover:bg-blue-600 text-white rounded-full shadow-lg z-30"
+        className="fixed bottom-6 right-6 bg-red-500 hover:bg-red-600 text-white rounded-full shadow-lg z-30"
       >
         <div className="flex items-center gap-3 px-6 py-4">
           <div className="relative">
@@ -38,7 +38,7 @@ export function CartFab({ onClick }: CartFabProps) {
               key={itemCount}
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
-              className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold"
+              className="absolute -top-2 -right-2 bg-white text-red-500 text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold"
             >
               {itemCount}
             </motion.div>

@@ -2,63 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Definição de cores vermelhas e branco para variáveis */
-:root {
-  --foreground: 0 0% 3.9%;
-  --background: 0 0% 100%;
-  --card: 0 0% 100%;
-  --card-foreground: 0 0% 3.9%;
-  --popover: 0 0% 100%;
-  --popover-foreground: 0 0% 3.9%;
-  --primary: 0 80% 50%;           /* vermelho principal */
-  --primary-foreground: 0 0% 100%; /* branco */
-  --secondary: 0 60% 70%;         /* vermelho claro */
-  --secondary-foreground: 0 0% 100%;
-  --muted: 0 0% 90%;
-  --muted-foreground: 0 0% 45%;
-  --accent: 0 70% 45%;            /* vermelho destaque */
-  --accent-foreground: 0 0% 100%;
-  --destructive: 0 65% 55%;       /* vermelho alerta */
-  --destructive-foreground: 0 0% 100%;
-  --border: 0 0% 85%;
-  --input: 0 0% 89.8%;
-  --chart-1: 0 75% 50%;
-  --chart-2: 0 60% 60%;
-  --chart-3: 0 50% 70%;
-  --chart-4: 0 40% 80%;
-  --chart-5: 0 30% 90%;
-  --radius: 0.5rem;
-}
-
-/* Dark mode */
-.dark {
-  --foreground: 0 0% 98%;
-  --background: 0 0% 3.9%;
-  --card: 0 0% 3.9%;
-  --card-foreground: 0 0% 98%;
-  --popover: 0 0% 3.9%;
-  --popover-foreground: 0 0% 98%;
-  --primary: 0 80% 50%;
-  --primary-foreground: 0 0% 100%;
-  --secondary: 0 60% 70%;
-  --secondary-foreground: 0 0% 100%;
-  --muted: 0 0% 14.9%;
-  --muted-foreground: 0 0% 63.9%;
-  --accent: 0 70% 45%;
-  --accent-foreground: 0 0% 100%;
-  --destructive: 0 65% 55%;
-  --destructive-foreground: 0 0% 100%;
-  --border: 0 0% 14.9%;
-  --input: 0 0% 14.9%;
-  --ring: 0 80% 50%;
-  --chart-1: 0 75% 50%;
-  --chart-2: 0 60% 60%;
-  --chart-3: 0 50% 70%;
-  --chart-4: 0 40% 80%;
-  --chart-5: 0 30% 90%;
-}
-
-/* Aplicando cores */
 @layer base {
   * {
     @apply border-border;

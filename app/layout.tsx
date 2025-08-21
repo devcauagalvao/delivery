@@ -10,6 +10,9 @@ const inter = Inter({ subsets: ['latin'] })
 export const metadata: Metadata = {
   title: 'Tauros Black Burgers',
   description: 'Os melhores hambúrgueres da cidade com entrega rápida',
+  icons: {
+    icon: '/favicon.ico',
+  },
 }
 
 export default function RootLayout({
@@ -19,6 +22,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="pt-BR">
+      <head />
       <body className={`${inter.className} bg-white`}>
         <AuthProvider>
           <CartProvider>
@@ -28,11 +32,13 @@ export default function RootLayout({
               position="top-center"
               toastOptions={{
                 style: {
-                  background: 'rgba(255, 255, 255, 0.1)',
-                  backdropFilter: 'blur(20px)',
-                  border: '1px solid rgba(255, 255, 255, 0.15)',
-                  color: 'black',
+                  background: '#cc9b3b',
+                  color: 'white',
+                  borderRadius: '8px',
+                  padding: '12px 16px',
+                  fontWeight: 'bold',
                 },
+                className: 'shadow-lg',
               }}
             />
           </CartProvider>

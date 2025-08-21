@@ -32,7 +32,7 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40"
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 shadow-none"
             onClick={onClose}
           />
           
@@ -47,7 +47,7 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-2xl font-bold text-white">Carrinho</h2>
                 <Button
-                  variant="ghost"
+                  variant="default"
                   size="sm"
                   onClick={onClose}
                   className="text-white/70 hover:text-white"
@@ -103,7 +103,7 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                             <div className="flex items-center justify-between mt-2">
                               <div className="flex items-center gap-2">
                                 <Button
-                                  variant="ghost"
+                                  variant="default"
                                   size="sm"
                                   onClick={() => updateQuantity(item.product.id, item.quantity - 1)}
                                   className="w-8 h-8 p-0 text-white/70 hover:text-white"
@@ -116,7 +116,7 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                                 </span>
                                 
                                 <Button
-                                  variant="ghost"
+                                  variant="default"
                                   size="sm"
                                   onClick={() => updateQuantity(item.product.id, item.quantity + 1)}
                                   className="w-8 h-8 p-0 text-white/70 hover:text-white"
@@ -126,7 +126,7 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                               </div>
 
                               <Button
-                                variant="ghost"
+                                variant="default"
                                 size="sm"
                                 onClick={() => removeItem(item.product.id)}
                                 className="w-8 h-8 p-0 text-red-400 hover:text-red-300"
@@ -149,7 +149,7 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                     </div>
 
                     <Link href="/checkout" onClick={onClose}>
-                      <Button className="w-full bg-blue-500 hover:bg-blue-600 text-white rounded-full py-3">
+                      <Button className="w-full bg-red-500 hover:bg-red-600 text-white rounded-full py-3">
                         Finalizar Pedido
                       </Button>
                     </Link>

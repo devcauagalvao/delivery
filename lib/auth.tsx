@@ -15,7 +15,7 @@ const AuthContext = createContext<AuthContextType>({
   user: null,
   profile: null,
   loading: true,
-  signOut: async () => {}
+  signOut: async () => { }
 })
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -24,31 +24,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // Get initial session
     const getInitialSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession()
-      setUser(session?.user ?? null)
-      
-      if (session?.user) {
-        await fetchProfile(session.user.id)
+      setLoading(true)
+
+      const { data: { session }, error } = await supabase.auth.getSession()
+      if (error) {
+        console.error('Erro ao obter sessão:', error)
+        setLoading(false)
+        return
       }
-      
+
+      const currentUser = session?.user ?? null
+      setUser(currentUser)
+
+      if (currentUser) {
+        await fetchProfile(currentUser.id)
+      }
+
       setLoading(false)
     }
 
     getInitialSession()
 
-    // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        setUser(session?.user ?? null)
-        
-        if (session?.user) {
-          await fetchProfile(session.user.id)
+      async (_event, session) => {
+        const newUser = session?.user ?? null
+        setUser(newUser)
+
+        if (newUser) {
+          await fetchProfile(newUser.id)
         } else {
           setProfile(null)
         }
-        
+
         setLoading(false)
       }
     )
@@ -57,17 +65,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   const fetchProfile = async (userId: string) => {
-    const { data } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', userId)
-      .single()
-    
-    setProfile(data)
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single()
+
+      if (error) {
+        console.error('Erro ao buscar perfil:', error)
+        return
+      }
+
+      setProfile(data)
+    } catch (err) {
+      console.error('Erro inesperado ao buscar perfil:', err)
+    }
   }
 
   const signOut = async () => {
-    await supabase.auth.signOut()
+    const { error } = await supabase.auth.signOut()
+    if (error) console.error('Erro ao sair:', error)
   }
 
   return (

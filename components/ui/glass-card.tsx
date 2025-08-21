@@ -15,7 +15,6 @@ export function GlassCard({ children, className, hover = false, onClick }: Glass
     <Component
       className={cn(
         'bg-white/10 backdrop-blur-xl border border-white/15 rounded-3xl',
-        'shadow-[0_8px_32px_0_rgba(31,38,135,0.37)]',
         hover && 'transition-all duration-300 hover:bg-white/20 hover:border-white/25',
         onClick && 'cursor-pointer',
         className
