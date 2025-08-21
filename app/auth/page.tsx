@@ -11,6 +11,10 @@ import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 
+// Importando dinamicamente o Hamburger do Lucide
+import dynamic from 'next/dynamic'
+const Hamburger = dynamic(() => import('lucide-react').then(mod => mod.Hamburger), { ssr: false })
+
 export default function AuthPage() {
   const [isSignUp, setIsSignUp] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
@@ -34,23 +38,17 @@ export default function AuthPage() {
           email: formData.email,
           password: formData.password,
         })
-
         if (error) throw error
-
         if (data.user) {
           const { error: profileError } = await supabase
             .from('profiles')
-            .insert([
-              {
-                id: data.user.id,
-                full_name: formData.fullName,
-                phone: formData.phone,
-                role: 'customer'
-              }
-            ])
-
+            .insert([{
+              id: data.user.id,
+              full_name: formData.fullName,
+              phone: formData.phone,
+              role: 'customer'
+            }])
           if (profileError) throw profileError
-
           toast.success('Conta criada com sucesso!')
           router.push('/')
         }
@@ -59,9 +57,7 @@ export default function AuthPage() {
           email: formData.email,
           password: formData.password,
         })
-
         if (error) throw error
-
         toast.success('Login realizado com sucesso!')
         router.push('/')
       }
@@ -73,22 +69,49 @@ export default function AuthPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-6 bg-[#1a1a1a]">
-      <div className="w-full max-w-md">
+    <div className="min-h-screen flex items-center justify-center p-6 bg-[#1a1a1a] relative overflow-hidden">
+      {/* Pattern de hambúrgueres animados no fundo */}
+      <div className="absolute inset-0 opacity-20 pointer-events-none">
+        <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-8">
+          {Array.from({ length: 100 }).map((_, i) => (
+            <motion.div
+              key={i}
+              className="flex justify-center items-center"
+              animate={{
+                y: [0, -10, 0],
+                rotate: [0, 15, -15, 0]
+              }}
+              transition={{
+                duration: 6 + Math.random() * 4,
+                repeat: Infinity,
+                repeatType: 'loop',
+                delay: Math.random() * 2
+              }}
+            >
+              <Hamburger className="text-[#cc9b3b] w-8 h-8" />
+            </motion.div>
+          ))}
+        </div>
+      </div>
+
+      <div className="w-full max-w-md relative z-10">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
         >
           <GlassCard className="p-8 bg-[#1a1a1a] border border-[#333]">
-            <div className="text-center mb-8">
-              <h1 className="text-3xl font-bold text-white mb-2">
-                Black Bull Burgers
-              </h1>
+            <div className="text-center mb-8 flex flex-col items-center">
+              <img
+                src="/taurus-black-burguer/logo-taurus.png"
+                alt="Taurus Black Burguer's"
+                className="w-32 h-auto mb-2"
+              />
               <p className="text-white">
                 {isSignUp ? 'Crie sua conta' : 'Faça seu login'}
               </p>
             </div>
 
+            {/* Formulário */}
             <form onSubmit={handleSubmit} className="space-y-6">
               {isSignUp && (
                 <>
@@ -103,7 +126,6 @@ export default function AuthPage() {
                       required
                     />
                   </div>
-
                   <div className="relative">
                     <Phone className="absolute left-4 top-1/2 transform -translate-y-1/2 text-white w-5 h-5" />
                     <Input
