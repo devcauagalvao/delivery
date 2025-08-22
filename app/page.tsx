@@ -89,24 +89,30 @@ export default function HomePage() {
 
       {/* Produtos */}
       <main className="w-full px-4 sm:px-6 lg:px-8 py-6">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"
-        >
-          {filteredProducts.map((product, index) => (
-            <motion.div
-              key={product.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 }}
-              onClick={() => handleCardClick(product)}
-              className="cursor-pointer"
-            >
-              <ProductCard product={product} />
-            </motion.div>
-          ))}
-        </motion.div>
+        {filteredProducts.length > 0 ? (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"
+          >
+            {filteredProducts.map((product, index) => (
+              <motion.div
+                key={product.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.1 }}
+                onClick={() => handleCardClick(product)}
+                className="cursor-pointer"
+              >
+                <ProductCard product={product} />
+              </motion.div>
+            ))}
+          </motion.div>
+        ) : searchQuery.trim() !== '' ? (
+          <div className="flex justify-center items-center h-64 text-gray-400 text-lg">
+            Nenhum produto encontrado para "{searchQuery}"
+          </div>
+        ) : null}
       </main>
 
       <ProductModal product={selectedProduct} onClose={handleModalClose} />

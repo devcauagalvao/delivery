@@ -98,33 +98,36 @@ export default function Header({
                         <div className="flex items-center gap-4 flex-shrink-0">
                             {user ? (
                                 <div className="flex items-center gap-4">
-                                    <span className="text-gray-400 hidden sm:inline">Olá, {profile?.full_name}</span>
+                                    <span className="text-gray-400 hidden sm:inline">
+                                        Olá, {profile?.full_name}
+                                    </span>
 
-                                    {/* Botão Admin se o role for admin */}
+                                    {/* Botão Admin */}
                                     {profile?.role === "admin" && (
                                         <Link href="/admin">
-                                            <Button variant="admin">
-                                                <Shield className="w-5 h-5 shrink-0" strokeWidth={4} />
-                                                <span className="ml-2 opacity-0 group-hover:opacity-100 transition-all duration-300 whitespace-nowrap">
+                                            <Button variant="admin" className="group flex items-center justify-center">
+                                                <Shield className="w-5 h-5 shrink-0 transition-all duration-300" strokeWidth={4} />
+                                                <span className="hidden group-hover:inline ml-2 transition-all duration-300 whitespace-nowrap">
                                                     Admin
                                                 </span>
                                             </Button>
                                         </Link>
                                     )}
 
-                                    {/* Botão Sair sempre que o usuário estiver logado */}
-                                    <Button onClick={signOut} variant="logout">
-                                        <LogOut className="w-5 h-5 shrink-0" strokeWidth={4} />
-                                        <span className="ml-2 opacity-0 group-hover:opacity-100 transition-all duration-300 whitespace-nowrap">
+                                    {/* Botão Sair */}
+                                    <Button onClick={signOut} variant="logout" className="group flex items-center justify-center">
+                                        <LogOut className="w-5 h-5 shrink-0 transition-all duration-300" strokeWidth={4} />
+                                        <span className="hidden group-hover:inline ml-2 transition-all duration-300 whitespace-nowrap">
                                             Sair
                                         </span>
                                     </Button>
                                 </div>
                             ) : (
-                                <Link href="/auth">
-                                    <Button variant="login">
-                                        <LogIn className="w-5 h-5 shrink-0" strokeWidth={4} />
-                                        <span className="ml-2 opacity-0 group-hover:opacity-100 transition-all duration-300 whitespace-nowrap">
+                                < Link href="/auth">
+                                    {/* Botão Entrar */}
+                                    <Button variant="login" className="group flex items-center justify-center">
+                                        <LogIn className="w-5 h-5 shrink-0 transition-all duration-300" strokeWidth={4} />
+                                        <span className="hidden group-hover:inline ml-2 transition-all duration-300 whitespace-nowrap">
                                             Entrar
                                         </span>
                                     </Button>
@@ -190,7 +193,7 @@ export default function Header({
                         </motion.div>
                     )}
                 </AnimatePresence>
-            </motion.header>
+            </motion.header >
         </>
     )
 }
