@@ -18,6 +18,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 
+/* ------------------- Validação ------------------- */
 const checkoutSchema = z.object({
   fullName: z.string().min(2, 'Nome deve ter pelo menos 2 caracteres'),
   phone: z.string().min(10, 'Telefone deve ter pelo menos 10 dígitos'),
@@ -26,12 +27,10 @@ const checkoutSchema = z.object({
   changeFor: z.string().optional(),
   notes: z.string().optional(),
 })
-
 type CheckoutData = z.infer<typeof checkoutSchema>
 
 export default function CheckoutPage() {
   const [loading, setLoading] = useState(false)
-  const [useCurrentLocation, setUseCurrentLocation] = useState(false)
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null)
   const [locationError, setLocationError] = useState('')
 
@@ -50,12 +49,13 @@ export default function CheckoutPage() {
 
   const paymentMethod = form.watch('paymentMethod')
 
+  /* ------------------- Proteção de rota ------------------- */
   useEffect(() => {
     if (!user) router.push('/auth')
     if (state.items.length === 0) router.push('/')
   }, [user, state.items, router])
 
-  // Captura de localização do usuário
+  /* ------------------- Captura localização ------------------- */
   const requestLocation = async () => {
     if (!navigator.geolocation) {
       setLocationError('Geolocalização não suportada pelo navegador')
@@ -65,26 +65,31 @@ export default function CheckoutPage() {
     navigator.geolocation.getCurrentPosition(
       (position) => {
         setLocation({ lat: position.coords.latitude, lng: position.coords.longitude })
-        setUseCurrentLocation(true)
         toast.success('Localização capturada com sucesso!')
       },
-      (error) => {
+      () => {
         setLocationError('Erro ao obter localização. Verifique as permissões.')
-        setUseCurrentLocation(false)
       },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
     )
   }
 
+  /* ------------------- Helpers ------------------- */
   const formatPrice = (cents: number) =>
     new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(cents / 100)
 
+  /* ------------------- Submit ------------------- */
   const onSubmit = async (data: CheckoutData) => {
-    if (!user) return
+    if (!user?.id) {
+      toast.error('Usuário não autenticado.')
+      return
+    }
+
     if (state.items.length === 0) {
       toast.error('Carrinho vazio')
       return
     }
+
     if (!location) {
       setLocationError('É obrigatório capturar sua localização para entrega.')
       return
@@ -92,6 +97,7 @@ export default function CheckoutPage() {
 
     setLoading(true)
     try {
+      // 1. Preparar itens do pedido
       const orderItems = state.items.map(item => ({
         product_id: item.product.id,
         quantity: item.quantity,
@@ -101,45 +107,55 @@ export default function CheckoutPage() {
 
       const totalCents = orderItems.reduce((acc, item) => acc + item.subtotal_cents, 0)
 
-      const { data: ordersData, error: orderError } = await supabase
+      // 2. Montar payload do pedido
+      const orderPayload = {
+        customer_id: user.id, // UUID válido do Supabase
+        status: 'pending',
+        payment_method: data.paymentMethod,
+        total_cents: totalCents,
+        notes: data.notes || null,
+        delivery_lat: location.lat,
+        delivery_lng: location.lng,
+        change_for_cents:
+          data.paymentMethod === 'cash' && data.changeFor
+            ? Math.round(parseFloat(data.changeFor) * 100)
+            : null,
+        customer_name: data.fullName,
+        customer_phone: data.phone,
+        delivery_address: data.address || null,
+      }
+
+      // 3. Inserir pedido
+      const { data: orderData, error: orderError } = await supabase
         .from('orders')
-        .insert([{
-          customer_id: user.id,
-          status: 'pending',
-          payment_method: data.paymentMethod,
-          total_cents: totalCents,
-          notes: data.notes || null,
-          customer_name: data.fullName,
-          customer_phone: data.phone,
-          delivery_address: data.address || null,
-          delivery_lat: location?.lat || null,
-          delivery_lng: location?.lng || null,
-          change_for_cents: data.changeFor ? Math.round(parseFloat(data.changeFor) * 100) : null,
-        }])
+        .insert([orderPayload])
         .select('id')
+        .single()
 
       if (orderError) throw orderError
-      if (!ordersData || ordersData.length === 0) throw new Error('Pedido não retornou ID')
+      const orderId = orderData?.id
+      if (!orderId) throw new Error('ID do pedido não retornado')
 
-      const orderId = ordersData[0].id
-
+      // 4. Inserir itens do pedido vinculando order_id
       const { error: itemsError } = await supabase
         .from('order_items')
         .insert(orderItems.map(item => ({ ...item, order_id: orderId })))
 
       if (itemsError) throw itemsError
 
+      // 5. Limpar carrinho e redirecionar
       clearCart()
       toast.success('Pedido realizado com sucesso!')
       router.push(`/orders/success?orderId=${orderId}`)
-
     } catch (error: any) {
+      console.error('Erro no checkout:', error)
       toast.error('Erro ao processar pedido: ' + (error.message || error))
     } finally {
       setLoading(false)
     }
   }
 
+  /* ------------------- UI ------------------- */
   if (state.items.length === 0) {
     return (
       <div className="min-h-screen flex items-center justify-center p-6 bg-[#1a1a1a]">
@@ -157,6 +173,7 @@ export default function CheckoutPage() {
     <div className="min-h-screen p-6 bg-[#1a1a1a]">
       <div className="max-w-2xl mx-auto">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
+          {/* Header */}
           <div className="flex items-center gap-4 mb-8">
             <Link href="/">
               <Button variant="default" size="sm" className="text-white hover:text-white">
@@ -169,7 +186,7 @@ export default function CheckoutPage() {
             </div>
           </div>
 
-          {/* Resumo do Pedido */}
+          {/* Resumo do pedido */}
           <GlassCard className="p-6 bg-[#1a1a1a]/50 border border-white/20 text-white">
             <h2 className="text-xl font-semibold text-white mb-4">Produtos do Pedido</h2>
             <div className="space-y-4 mb-4">
@@ -203,10 +220,10 @@ export default function CheckoutPage() {
             </div>
           </GlassCard>
 
-          {/* Formulário */}
+          {/* Form */}
           <GlassCard className="p-6 bg-[#1a1a1a]/50 border border-white/20 text-white">
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              {/* Dados de Entrega */}
+              {/* Dados entrega */}
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold text-white">Informações de Entrega</h3>
                 <Input {...form.register('fullName')} placeholder="Nome completo" className="bg-[#111] border border-white/20 text-white placeholder:text-white/50 rounded-2xl" />
@@ -214,7 +231,6 @@ export default function CheckoutPage() {
                 <Input {...form.register('address')} placeholder="Endereço (opcional)" className="bg-[#111] border border-white/20 text-white placeholder:text-white/50 rounded-2xl" />
                 <Button
                   type="button"
-                  variant="secondary"
                   onClick={requestLocation}
                   className={`w-full border-2 flex items-center justify-center gap-2 ${location ? 'border-[#cc9b3b] bg-[#cc9b3b]/10 text-[#cc9b3b]' : 'border-white/20 text-white hover:border-[#cc9b3b] hover:text-[#cc9b3b] rounded-2xl'}`}
                 >
@@ -222,10 +238,9 @@ export default function CheckoutPage() {
                   {location ? 'Localização Capturada ✓' : 'Usar Minha Localização Atual'}
                 </Button>
                 {locationError && <p className="text-[#cc9b3b] text-sm">{locationError}</p>}
-                {location && <p className="text-[#cc9b3b] text-sm">Localização salva para entrega!</p>}
               </div>
 
-              {/* Forma de Pagamento */}
+              {/* Pagamento */}
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold text-white">Forma de Pagamento</h3>
                 <div className="grid grid-cols-1 gap-3">
@@ -236,9 +251,7 @@ export default function CheckoutPage() {
                       <label key={method} className={`flex items-center gap-3 p-4 rounded-2xl cursor-pointer border-2 transition-all ${paymentMethod === method ? 'border-[#cc9b3b] bg-[#cc9b3b]/10' : 'border-white/20 bg-[#111]'}`}>
                         <input type="radio" value={method} {...form.register('paymentMethod')} className="sr-only" />
                         <Icon className={`w-6 h-6 ${paymentMethod === method ? 'text-[#cc9b3b]' : 'text-white'}`} />
-                        <div>
-                          <div className={`font-medium ${paymentMethod === method ? 'text-[#cc9b3b]' : 'text-white'}`}>{label}</div>
-                        </div>
+                        <div className={`font-medium ${paymentMethod === method ? 'text-[#cc9b3b]' : 'text-white'}`}>{label}</div>
                       </label>
                     )
                   })}

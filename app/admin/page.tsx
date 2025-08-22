@@ -1,178 +1,291 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { Hamburger, X, Home, Menu } from 'lucide-react'
-import { ProtectedRoute } from '@/components/protected-route'
-import { supabase, OrderWithItems } from '@/lib/supabase'
+import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Loader2, MapPin, Check, X, ArrowLeft, Truck, Utensils, Package } from 'lucide-react'
 
-import OrdersTab from './components/orders-tab'
-import UsersTab from './components/users-tab'
-import ProductsTab from './components/products-tab'
-import OrderModal from './components/order-modal'
+type Order = {
+  id: string
+  customer_name: string
+  customer_phone: string
+  total_cents: number
+  status: string
+  delivery_address: string | null
+  payment_method: string
+  delivery_lat: number | null
+  delivery_lng: number | null
+  notes: string | null
+  created_at: string
+}
 
-export default function AdminPage() {
+type OrderItem = {
+  id: string
+  product_id: string
+  quantity: number
+  unit_price_cents: number
+  subtotal_cents: number
+  product: {
+    name: string
+  }
+}
+
+type OrderWithItems = Order & { order_items: OrderItem[] }
+
+const STATUS_LABELS: Record<string, string> = {
+  pending: 'Pendente',
+  accepted: 'Aceito',
+  preparing: 'Preparando',
+  out_for_delivery: 'Saiu para entrega',
+  delivered: 'Entregue',
+  rejected: 'Rejeitado',
+  cancelled: 'Cancelado',
+}
+
+const STATUS_ACTIONS: Record<string, { label: string; next: string; icon: any }[]> = {
+  pending: [
+    { label: 'Aceitar', next: 'accepted', icon: Check },
+    { label: 'Rejeitar', next: 'rejected', icon: X },
+  ],
+  accepted: [
+    { label: 'Preparar', next: 'preparing', icon: Utensils },
+  ],
+  preparing: [
+    { label: 'Saiu para entrega', next: 'out_for_delivery', icon: Truck },
+  ],
+  out_for_delivery: [
+    { label: 'Entregue', next: 'delivered', icon: Package },
+  ],
+  delivered: [],
+  rejected: [],
+  cancelled: [],
+}
+
+function formatPrice(cents: number) {
+  return (cents / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+}
+
+export default function AdminOrdersPage() {
   const [orders, setOrders] = useState<OrderWithItems[]>([])
-  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null)
-  const [selectedOrder, setSelectedOrder] = useState<OrderWithItems | null>(null)
   const [loading, setLoading] = useState(true)
-  const [loadingOrder, setLoadingOrder] = useState(false)
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false)
-  const [tab, setTab] = useState<'orders' | 'users' | 'products'>('orders')
+  const [selectedOrder, setSelectedOrder] = useState<OrderWithItems | null>(null)
+  const [updating, setUpdating] = useState(false)
 
-  useEffect(() => {
-    fetchOrders()
-    if (typeof window !== 'undefined') subscribeToOrderUpdates()
-  }, [])
-
+  // Carrega pedidos
   const fetchOrders = async () => {
     setLoading(true)
     const { data, error } = await supabase
       .from('orders')
-      .select(`*, order_items (*, product:products (*)), profile:profiles (*)`)
+      .select('*, order_items(*, product:products(name))')
       .order('created_at', { ascending: false })
 
-    if (error) toast.error('Erro ao carregar pedidos')
-    else setOrders(data as OrderWithItems[])
+    if (error) {
+      toast.error('Erro ao carregar pedidos')
+      setOrders([])
+    } else {
+      setOrders(data as OrderWithItems[])
+    }
     setLoading(false)
   }
 
-  const fetchOrderById = async (orderId: string) => {
-    setLoadingOrder(true)
-    const { data, error } = await supabase
-      .from('orders')
-      .select(`*, order_items (*, product:products (*)), profile:profiles (*)`)
-      .eq('id', orderId)
-      .single()
-
-    if (error) {
-      toast.error('Erro ao carregar detalhes do pedido')
-      setSelectedOrder(null)
-    } else setSelectedOrder(data as OrderWithItems)
-    setLoadingOrder(false)
-  }
-
   useEffect(() => {
-    if (selectedOrderId) fetchOrderById(selectedOrderId)
-    else setSelectedOrder(null)
-  }, [selectedOrderId])
-
-  const subscribeToOrderUpdates = () => {
-    if (typeof window === 'undefined') return
-    const subscription = supabase
+    fetchOrders()
+    // Opcional: subscribe realtime
+    const channel = supabase
       .channel('public:orders')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => fetchOrders())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, fetchOrders)
       .subscribe()
-    return () => subscription.unsubscribe()
+    return () => { channel.unsubscribe() }
+  }, [])
+
+  // Atualiza status do pedido
+  const updateOrderStatus = async (orderId: string, newStatus: string) => {
+    setUpdating(true)
+    const { error } = await supabase
+      .from('orders')
+      .update({ status: newStatus })
+      .eq('id', orderId)
+    if (error) {
+      toast.error('Erro ao atualizar status')
+    } else {
+      toast.success('Status atualizado!')
+      fetchOrders()
+      if (selectedOrder?.id === orderId) setSelectedOrder(null)
+    }
+    setUpdating(false)
   }
 
-  if (loading) {
+  // Modal de detalhes do pedido
+  function OrderModal({ order, onClose }: { order: OrderWithItems, onClose: () => void }) {
     return (
-      <ProtectedRoute requiredRole="admin">
-        <div className="flex flex-col items-center justify-center min-h-screen bg-black text-[#cc9b3b]">
-          <motion.div className="mb-4">
-            <Hamburger className="w-16 h-16" />
+      <AnimatePresence>
+        <motion.div
+          className="fixed inset-0 z-40 bg-black/60 flex items-center justify-center"
+          initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+        >
+          <motion.div
+            className="bg-[#18181b] rounded-xl shadow-xl w-full max-w-lg p-6 relative text-white"
+            initial={{ scale: 0.95, y: 40 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 40 }}
+          >
+            <button
+              className="absolute top-4 right-4 text-gray-400 hover:text-white"
+              onClick={onClose}
+            >
+              <X className="w-6 h-6" />
+            </button>
+            <h2 className="text-2xl font-bold mb-2">Pedido #{order.id.slice(0, 8)}</h2>
+            <div className="mb-2 text-sm text-gray-300">
+              <span className="font-semibold">Status:</span> {STATUS_LABELS[order.status]}
+            </div>
+            <div className="mb-2">
+              <span className="font-semibold">Cliente:</span> {order.customer_name}
+            </div>
+            <div className="mb-2">
+              <span className="font-semibold">Telefone:</span> {order.customer_phone}
+            </div>
+            <div className="mb-2">
+              <span className="font-semibold">Endereço:</span> {order.delivery_address || <span className="italic text-gray-400">Não informado</span>}
+            </div>
+            <div className="mb-2">
+              <span className="font-semibold">Método de pagamento:</span> {order.payment_method.toUpperCase()}
+            </div>
+            <div className="mb-2">
+              <span className="font-semibold">Total:</span> {formatPrice(order.total_cents)}
+            </div>
+            {order.notes && (
+              <div className="mb-2">
+                <span className="font-semibold">Observações:</span> {order.notes}
+              </div>
+            )}
+            {/* Itens do pedido */}
+            <div className="my-4">
+              <h3 className="font-semibold mb-2">Itens do pedido:</h3>
+              <ul className="divide-y divide-gray-700">
+                {order.order_items.map(item => (
+                  <li key={item.id} className="py-2 flex justify-between items-center">
+                    <span>
+                      {item.product?.name || 'Produto'} <span className="text-gray-400">x{item.quantity}</span>
+                    </span>
+                    <span className="font-semibold">{formatPrice(item.subtotal_cents)}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            {/* Mapa */}
+            {order.delivery_lat && order.delivery_lng && (
+              <div className="mb-4">
+                <h3 className="font-semibold mb-2 flex items-center gap-2"><MapPin className="w-4 h-4" /> Local da entrega</h3>
+                <iframe
+                  title="Mapa da entrega"
+                  width="100%"
+                  height={200}
+                  className="rounded-lg border-2 border-[#cc9b3b]"
+                  loading="lazy"
+                  style={{ filter: 'grayscale(0.2)' }}
+                  src={`https://www.openstreetmap.org/export/embed.html?bbox=${order.delivery_lng - 0.002},${order.delivery_lat - 0.002},${order.delivery_lng + 0.002},${order.delivery_lat + 0.002}&layer=mapnik&marker=${order.delivery_lat},${order.delivery_lng}`}
+                />
+                <a
+                  href={`https://www.openstreetmap.org/?mlat=${order.delivery_lat}&mlon=${order.delivery_lng}#map=18/${order.delivery_lat}/${order.delivery_lng}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block text-xs text-[#cc9b3b] mt-1 underline"
+                >
+                  Ver no mapa
+                </a>
+              </div>
+            )}
+            {/* Ações de status */}
+            <div className="flex gap-2 mt-4">
+              {STATUS_ACTIONS[order.status]?.map(action => (
+                <button
+                  key={action.next}
+                  disabled={updating}
+                  onClick={() => updateOrderStatus(order.id, action.next)}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg font-semibold transition
+                    ${updating ? 'bg-gray-700 text-gray-400 cursor-not-allowed' : 'bg-[#cc9b3b] hover:bg-[#b88b30] text-black'}
+                  `}
+                >
+                  <action.icon className="w-4 h-4" />
+                  {action.label}
+                </button>
+              ))}
+            </div>
           </motion.div>
-          <span className="text-lg font-bold">Carregando...</span>
-        </div>
-      </ProtectedRoute>
+        </motion.div>
+      </AnimatePresence>
     )
   }
 
   return (
-    <ProtectedRoute requiredRole="admin">
-      <div className="min-h-screen bg-black relative">
-        {/* Botão abrir sidebar */}
-        <button
-          onClick={() => setIsSidebarOpen(true)}
-          className="fixed top-4 left-4 z-50 bg-black/70 text-white p-2 rounded-full hover:bg-black/90 transition"
-        >
-          <Menu className="w-6 h-6" />
-        </button>
-
-        {/* Conteúdo principal */}
-        <div className="p-6 max-w-7xl mx-auto">
-          {tab === 'orders' && <OrdersTab orders={orders} setSelectedOrderId={setSelectedOrderId} />}
-          {tab === 'users' && <UsersTab />}
-          {tab === 'products' && <ProductsTab />}
-        </div>
-
-        {/* Sidebar */}
-        <AnimatePresence>
-          {isSidebarOpen && (
-            <>
-              {/* Overlay */}
-              <motion.div
-                className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                onClick={() => setIsSidebarOpen(false)}
-              />
-
-              {/* Sidebar */}
-              <motion.div
-                className="fixed top-0 left-0 h-full w-80 bg-black text-white shadow-2xl z-50 flex flex-col"
-                initial={{ x: -300 }}
-                animate={{ x: 0 }}
-                exit={{ x: -300 }}
-              >
-                {/* Cabeçalho */}
-                <div className="flex items-center justify-between p-4 border-b border-white/20">
-                  <button
-                    onClick={() => setIsSidebarOpen(false)}
-                    className="text-gray-300 hover:text-white p-1 rounded-full"
-                  >
-                    <X className="w-5 h-5" />
-                  </button>
-                  <button
-                    onClick={() => window.location.href = '/'}
-                    className="flex items-center gap-2 text-[#cc9b3b] hover:text-white"
-                  >
-                    <Home className="w-5 h-5" />
-                    Principal
-                  </button>
-                </div>
-
-                {/* Tabs */}
-                <div className="flex flex-col flex-1 overflow-y-auto">
-                  <div className="flex space-x-2 p-4 border-b border-white/20">
-                    <button
-                      onClick={() => setTab('orders')}
-                      className={`px-3 py-1 rounded-md ${tab === 'orders' ? 'bg-black text-[#cc9b3b]' : 'text-white'}`}
-                    >
-                      Pedidos
-                    </button>
-                    <button
-                      onClick={() => setTab('users')}
-                      className={`px-3 py-1 rounded-md ${tab === 'users' ? 'bg-black text-[#cc9b3b]' : 'text-white'}`}
-                    >
-                      Usuários
-                    </button>
-                    <button
-                      onClick={() => setTab('products')}
-                      className={`px-3 py-1 rounded-md ${tab === 'products' ? 'bg-black text-[#cc9b3b]' : 'text-white'}`}
-                    >
-                      Produtos
-                    </button>
-                  </div>
-                </div>
-              </motion.div>
-            </>
-          )}
-        </AnimatePresence>
-
-        {/* Order Modal */}
-        <OrderModal
-          selectedOrderId={selectedOrderId}
-          setSelectedOrderId={setSelectedOrderId}
-          selectedOrder={selectedOrder}
-          loadingOrder={loadingOrder}
-          refreshOrders={fetchOrders}
-        />
+    <div className="min-h-screen bg-[#18181b] text-white p-6">
+      <div className="max-w-5xl mx-auto">
+        <h1 className="text-3xl font-bold mb-8 text-[#cc9b3b]">Administração de Pedidos</h1>
+        {loading ? (
+          <div className="flex flex-col items-center justify-center h-64">
+            <Loader2 className="w-12 h-12 animate-spin text-[#cc9b3b]" />
+            <span className="mt-4 text-[#cc9b3b]">Carregando pedidos...</span>
+          </div>
+        ) : (
+          <div className="overflow-x-auto rounded-xl shadow-lg bg-[#23232b]">
+            <table className="min-w-full text-sm">
+              <thead>
+                <tr className="bg-[#1a1a1a] text-[#cc9b3b]">
+                  <th className="py-3 px-4 text-left">Cliente</th>
+                  <th className="py-3 px-4 text-left">Telefone</th>
+                  <th className="py-3 px-4 text-left">Total</th>
+                  <th className="py-3 px-4 text-left">Status</th>
+                  <th className="py-3 px-4 text-left">Endereço</th>
+                  <th className="py-3 px-4 text-left">Pagamento</th>
+                  <th className="py-3 px-4"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {orders.length === 0 && (
+                  <tr>
+                    <td colSpan={7} className="py-8 text-center text-gray-400">Nenhum pedido encontrado.</td>
+                  </tr>
+                )}
+                {orders.map(order => (
+                  <tr key={order.id} className="border-b border-[#23232b] hover:bg-[#23232b]/60 transition">
+                    <td className="py-3 px-4">{order.customer_name}</td>
+                    <td className="py-3 px-4">{order.customer_phone}</td>
+                    <td className="py-3 px-4">{formatPrice(order.total_cents)}</td>
+                    <td className="py-3 px-4">
+                      <span className={`px-2 py-1 rounded text-xs font-bold
+                        ${order.status === 'pending' ? 'bg-yellow-700 text-yellow-200'
+                          : order.status === 'accepted' ? 'bg-blue-700 text-blue-200'
+                          : order.status === 'preparing' ? 'bg-orange-700 text-orange-200'
+                          : order.status === 'out_for_delivery' ? 'bg-purple-700 text-purple-200'
+                          : order.status === 'delivered' ? 'bg-green-700 text-green-200'
+                          : order.status === 'rejected' ? 'bg-red-700 text-red-200'
+                          : 'bg-gray-700 text-gray-200'
+                        }`
+                      }>
+                        {STATUS_LABELS[order.status] || order.status}
+                      </span>
+                    </td>
+                    <td className="py-3 px-4">{order.delivery_address || <span className="italic text-gray-400">-</span>}</td>
+                    <td className="py-3 px-4">{order.payment_method.toUpperCase()}</td>
+                    <td className="py-3 px-4">
+                      <button
+                        className="text-[#cc9b3b] hover:underline font-semibold"
+                        onClick={() => setSelectedOrder(order)}
+                      >
+                        Detalhes
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
-    </ProtectedRoute>
+      {/* Modal de detalhes */}
+      {selectedOrder && (
+        <OrderModal order={selectedOrder} onClose={() => setSelectedOrder(null)} />
+      )}
+    </div>
   )
 }
-  
