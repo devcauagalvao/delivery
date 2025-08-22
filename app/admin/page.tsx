@@ -70,7 +70,7 @@ export default function AdminPage() {
   if (loading) {
     return (
       <ProtectedRoute requiredRole="admin">
-        <div className="flex flex-col items-center justify-center min-h-screen bg-black text-white">
+        <div className="flex flex-col items-center justify-center min-h-screen bg-black text-[#cc9b3b]">
           <motion.div className="mb-4">
             <Hamburger className="w-16 h-16" />
           </motion.div>
