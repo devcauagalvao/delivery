@@ -26,16 +26,13 @@ export function OrderMap({ latitude, longitude, customerName }: OrderMapProps) {
   useEffect(() => {
     if (!mapRef.current) return
 
-    // Initialize map
     const map = L.map(mapRef.current).setView([latitude, longitude], 16)
     mapInstanceRef.current = map
 
-    // Add tile layer (OpenStreetMap)
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '© OpenStreetMap contributors'
     }).addTo(map)
 
-    // Create custom pulsing marker
     const pulsingIcon = L.divIcon({
       className: 'pulsing-marker',
       html: `
@@ -50,16 +47,13 @@ export function OrderMap({ latitude, longitude, customerName }: OrderMapProps) {
       iconAnchor: [12, 12]
     })
 
-    // Add marker
     const marker = L.marker([latitude, longitude], { icon: pulsingIcon }).addTo(map)
     marker.bindPopup(`📍 ${customerName}<br/>Localização do cliente`)
 
-    // Calculate distance from restaurant (example coordinates)
-    const restaurantLat = -23.550520 // São Paulo example
+    const restaurantLat = -23.550520
     const restaurantLng = -46.633308
     const distance = calculateDistance(latitude, longitude, restaurantLat, restaurantLng)
 
-    // Add distance info
     const distancePopup = L.popup()
       .setLatLng([latitude, longitude])
       .setContent(`
@@ -81,14 +75,14 @@ export function OrderMap({ latitude, longitude, customerName }: OrderMapProps) {
   }, [latitude, longitude, customerName])
 
   const calculateDistance = (lat1: number, lng1: number, lat2: number, lng2: number) => {
-    const R = 6371 // Radius of the Earth in km
+    const R = 6371
     const dLat = (lat2 - lat1) * Math.PI / 180
     const dLng = (lng2 - lng1) * Math.PI / 180
-    const a = 
-      Math.sin(dLat/2) * Math.sin(dLat/2) +
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
       Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-      Math.sin(dLng/2) * Math.sin(dLng/2)
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))
+      Math.sin(dLng / 2) * Math.sin(dLng / 2)
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
     return R * c
   }
 
@@ -97,8 +91,8 @@ export function OrderMap({ latitude, longitude, customerName }: OrderMapProps) {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       ref={mapRef}
-      className="w-full h-64 rounded-2xl overflow-hidden"
-      style={{ minHeight: '256px' }}
+      className="w-full h-48 sm:h-56 md:h-64 lg:h-72 xl:h-80 2xl:h-96 rounded-2xl overflow-hidden"
+      style={{ minHeight: '192px' }}
     />
   )
 }

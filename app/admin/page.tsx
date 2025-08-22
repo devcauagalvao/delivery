@@ -1,52 +1,16 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import dynamic from 'next/dynamic'
-import { motion } from 'framer-motion'
-import {
-  Clock,
-  CheckCircle,
-  ChefHat,
-  Truck,
-  Package,
-  X,
-  MapPin,
-  CreditCard,
-  Banknote,
-  Smartphone
-} from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Hamburger, X, Home, Menu } from 'lucide-react'
 import { ProtectedRoute } from '@/components/protected-route'
-import { GlassCard } from '@/components/ui/glass-card'
-import { Button } from '@/components/ui/button'
 import { supabase, OrderWithItems } from '@/lib/supabase'
 import { toast } from 'sonner'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
-import { Input } from '@/components/ui/input'
-import { Switch } from '@/components/ui/switch'
-import { useDebounce } from '@/hooks/useDebounce'
 
-// Carrega mapa apenas no cliente
-const OrderMap = dynamic(() => import('@/components/order-map'), { ssr: false })
-
-const statusConfig = {
-  pending: { label: 'Novos', icon: Clock, color: 'text-red-500 bg-red-100', actions: ['accept', 'reject'] as const },
-  accepted: { label: 'Aceitos', icon: CheckCircle, color: 'text-green-500 bg-green-100', actions: ['preparing'] as const },
-  preparing: { label: 'Em Preparo', icon: ChefHat, color: 'text-yellow-500 bg-yellow-100', actions: ['out_for_delivery'] as const },
-  out_for_delivery: { label: 'Saiu para Entrega', icon: Truck, color: 'text-purple-500 bg-purple-100', actions: ['delivered'] as const },
-  delivered: { label: 'Entregues', icon: Package, color: 'text-gray-500 bg-gray-100', actions: [] as const },
-  rejected: { label: 'Recusados', icon: X, color: 'text-gray-400 bg-gray-100', actions: [] as const },
-  cancelled: { label: 'Cancelados', icon: X, color: 'text-gray-400 bg-gray-100', actions: [] as const }
-}
-
-type User = { id: string, full_name: string, phone: string, role: string, created_at: string }
-type Product = { id: string, name: string, description?: string, price_cents: number, original_price_cents: number, image_url: string, active: boolean, created_at: string }
-type OrderItem = { id: string, order_id: string, product_id: string, quantity: number, unit_price_cents: number, subtotal_cents?: number, product?: Product }
+import OrdersTab from './components/orders-tab'
+import UsersTab from './components/users-tab'
+import ProductsTab from './components/products-tab'
+import OrderModal from './components/order-modal'
 
 export default function AdminPage() {
   const [orders, setOrders] = useState<OrderWithItems[]>([])
@@ -54,22 +18,9 @@ export default function AdminPage() {
   const [selectedOrder, setSelectedOrder] = useState<OrderWithItems | null>(null)
   const [loading, setLoading] = useState(true)
   const [loadingOrder, setLoadingOrder] = useState(false)
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [tab, setTab] = useState<'orders' | 'users' | 'products'>('orders')
 
-  // Usuários
-  const [users, setUsers] = useState<User[]>([])
-  const [userFilter, setUserFilter] = useState({ name: '', phone: '', role: '' })
-  const debouncedUserFilter = useDebounce(userFilter, 400)
-
-  // Produtos
-  const [products, setProducts] = useState<Product[]>([])
-  const [productFilter, setProductFilter] = useState({ name: '', active: '' })
-  const debouncedProductFilter = useDebounce(productFilter, 400)
-
-  // Pedidos - filtros
-  const [orderFilters, setOrderFilters] = useState({ status: '', payment: '', date: '' })
-
-  // Carregar pedidos
   useEffect(() => {
     fetchOrders()
     if (typeof window !== 'undefined') subscribeToOrderUpdates()
@@ -116,195 +67,112 @@ export default function AdminPage() {
     return () => subscription.unsubscribe()
   }
 
-  const updateOrderStatus = async (orderId: string, action: string) => {
-    const actionToStatus: Record<string, string> = {
-      accept: 'accepted', reject: 'rejected', preparing: 'preparing', out_for_delivery: 'out_for_delivery', delivered: 'delivered'
-    }
-    const newStatus = actionToStatus[action]
-    if (!newStatus) return toast.error('Ação inválida')
-
-    const { error } = await supabase.from('orders').update({ status: newStatus }).eq('id', orderId)
-    if (error) toast.error('Erro ao atualizar pedido')
-    else setSelectedOrderId(null)
+  if (loading) {
+    return (
+      <ProtectedRoute requiredRole="admin">
+        <div className="flex flex-col items-center justify-center min-h-screen bg-black text-white">
+          <motion.div className="mb-4">
+            <Hamburger className="w-16 h-16" />
+          </motion.div>
+          <span className="text-lg font-bold">Carregando...</span>
+        </div>
+      </ProtectedRoute>
+    )
   }
-
-  const formatPrice = (cents: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(cents / 100)
-  const formatDate = (dateString: string) => new Date(dateString).toLocaleString('pt-BR')
-  const getOrdersByStatus = (status: string) => orders.filter(order => order.status === status)
-
-  // Carregar usuários e produtos
-  useEffect(() => {
-    if (tab === 'users') fetchUsers()
-    else if (tab === 'products') fetchProducts()
-  }, [debouncedUserFilter, debouncedProductFilter, tab])
-
-  const fetchUsers = async () => {
-    let query = supabase.from('profiles').select('*')
-    if (debouncedUserFilter.name) query = query.ilike('full_name', `%${debouncedUserFilter.name}%`)
-    if (debouncedUserFilter.phone) query = query.ilike('phone', `%${debouncedUserFilter.phone}%`)
-    if (debouncedUserFilter.role) query = query.eq('role', debouncedUserFilter.role)
-    const { data, error } = await query
-    if (!error) setUsers(data as User[])
-  }
-
-  const fetchProducts = async () => {
-    let query = supabase.from('products').select('*')
-    if (debouncedProductFilter.name) query = query.ilike('name', `%${debouncedProductFilter.name}%`)
-    if (debouncedProductFilter.active) query = query.eq('active', debouncedProductFilter.active === 'true')
-    const { data, error } = await query
-    if (!error) setProducts(data as Product[])
-  }
-
-  const filteredOrders = orders.filter(order => {
-    const statusOk = !orderFilters.status || order.status === orderFilters.status
-    const paymentOk = !orderFilters.payment || order.payment_method === orderFilters.payment
-    const dateOk = !orderFilters.date || order.created_at.startsWith(orderFilters.date)
-    return statusOk && paymentOk && dateOk
-  })
-
-  if (loading) return (
-    <ProtectedRoute requiredRole="admin">
-      <div className="min-h-screen flex items-center justify-center p-6 bg-gradient-to-br from-red-600 via-red-900 to-gray-900">
-        <GlassCard className="p-8 text-center bg-white/80">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-500 mx-auto mb-4"></div>
-          <p className="text-red-700 font-semibold">Carregando pedidos...</p>
-        </GlassCard>
-      </div>
-    </ProtectedRoute>
-  )
 
   return (
     <ProtectedRoute requiredRole="admin">
-      <div className="min-h-screen p-6 bg-gradient-to-br from-red-600 via-red-900 to-gray-900">
-        <div className="max-w-7xl mx-auto">
-          <Tabs value={tab} onValueChange={v => setTab(v as any)} className="mb-6">
-            <TabsList>
-              <TabsTrigger value="orders">Pedidos</TabsTrigger>
-              <TabsTrigger value="users">Usuários</TabsTrigger>
-              <TabsTrigger value="products">Produtos</TabsTrigger>
-            </TabsList>
+      <div className="min-h-screen bg-black relative">
+        {/* Botão abrir sidebar */}
+        <button
+          onClick={() => setIsSidebarOpen(true)}
+          className="fixed top-4 left-4 z-50 bg-black/70 text-white p-2 rounded-full hover:bg-black/90 transition"
+        >
+          <Menu className="w-6 h-6" />
+        </button>
 
-            {/* PEDIDOS */}
-            <TabsContent value="orders">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {Object.keys(statusConfig).map(status => (
-                  <GlassCard key={status} className="p-4">
-                    <h3 className="font-bold mb-2">{statusConfig[status as keyof typeof statusConfig].label}</h3>
-                    <ul>
-                      {getOrdersByStatus(status).map(order => (
-                        <li key={order.id} className="border-b border-gray-200 py-2 flex justify-between items-center">
-                          <span>{order.profile?.full_name} - {formatPrice(order.total_cents)}</span>
-                          <Button size="sm" onClick={() => setSelectedOrderId(order.id)}>Detalhes</Button>
-                        </li>
-                      ))}
-                    </ul>
-                  </GlassCard>
-                ))}
-              </div>
-            </TabsContent>
-
-            {/* USUÁRIOS */}
-            <TabsContent value="users">
-              <div className="flex flex-col gap-4">
-                <div className="flex gap-2">
-                  <Input placeholder="Nome" value={userFilter.name} onChange={e => setUserFilter(f => ({ ...f, name: e.target.value }))} />
-                  <Input placeholder="Telefone" value={userFilter.phone} onChange={e => setUserFilter(f => ({ ...f, phone: e.target.value }))} />
-                  <Input placeholder="Role" value={userFilter.role} onChange={e => setUserFilter(f => ({ ...f, role: e.target.value }))} />
-                </div>
-                <div className="overflow-auto">
-                  <table className="w-full table-auto text-left border-collapse border border-gray-300">
-                    <thead>
-                      <tr>
-                        <th className="border px-2 py-1">Nome</th>
-                        <th className="border px-2 py-1">Telefone</th>
-                        <th className="border px-2 py-1">Role</th>
-                        <th className="border px-2 py-1">Criado</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {users.map(u => (
-                        <tr key={u.id}>
-                          <td className="border px-2 py-1">{u.full_name}</td>
-                          <td className="border px-2 py-1">{u.phone}</td>
-                          <td className="border px-2 py-1">{u.role}</td>
-                          <td className="border px-2 py-1">{formatDate(u.created_at)}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </TabsContent>
-
-            {/* PRODUTOS */}
-            <TabsContent value="products">
-              <div className="flex flex-col gap-4">
-                <div className="flex gap-2">
-                  <Input placeholder="Nome" value={productFilter.name} onChange={e => setProductFilter(f => ({ ...f, name: e.target.value }))} />
-                  <Input placeholder="Ativo" value={productFilter.active} onChange={e => setProductFilter(f => ({ ...f, active: e.target.value }))} />
-                </div>
-                <div className="overflow-auto">
-                  <table className="w-full table-auto text-left border-collapse border border-gray-300">
-                    <thead>
-                      <tr>
-                        <th className="border px-2 py-1">Nome</th>
-                        <th className="border px-2 py-1">Preço</th>
-                        <th className="border px-2 py-1">Ativo</th>
-                        <th className="border px-2 py-1">Criado</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {products.map(p => (
-                        <tr key={p.id}>
-                          <td className="border px-2 py-1">{p.name}</td>
-                          <td className="border px-2 py-1">{formatPrice(p.price_cents)}</td>
-                          <td className="border px-2 py-1">{p.active ? 'Sim' : 'Não'}</td>
-                          <td className="border px-2 py-1">{formatDate(p.created_at)}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </TabsContent>
-          </Tabs>
+        {/* Conteúdo principal */}
+        <div className="p-6 max-w-7xl mx-auto">
+          {tab === 'orders' && <OrdersTab orders={orders} setSelectedOrderId={setSelectedOrderId} />}
+          {tab === 'users' && <UsersTab />}
+          {tab === 'products' && <ProductsTab />}
         </div>
 
-        {/* MODAL PEDIDO */}
-        <Dialog open={!!selectedOrderId} onOpenChange={() => setSelectedOrderId(null)}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Detalhes do Pedido</DialogTitle>
-            </DialogHeader>
-            {loadingOrder ? (
-              <p>Carregando...</p>
-            ) : selectedOrder ? (
-              <div className="flex flex-col gap-4">
-                <p>Cliente: {selectedOrder.profile?.full_name}</p>
-                <p>Telefone: {selectedOrder.profile?.phone}</p>
-                <p>Total: {formatPrice(selectedOrder.total_cents)}</p>
-                <div>
-                  {selectedOrder.order_items.map(item => (
-                    <p key={item.id}>{item.product?.name} x{item.quantity} - {formatPrice(item.unit_price_cents)}</p>
-                  ))}
+        {/* Sidebar */}
+        <AnimatePresence>
+          {isSidebarOpen && (
+            <>
+              {/* Overlay */}
+              <motion.div
+                className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setIsSidebarOpen(false)}
+              />
+
+              {/* Sidebar */}
+              <motion.div
+                className="fixed top-0 left-0 h-full w-80 bg-black text-white shadow-2xl z-50 flex flex-col"
+                initial={{ x: -300 }}
+                animate={{ x: 0 }}
+                exit={{ x: -300 }}
+              >
+                {/* Cabeçalho */}
+                <div className="flex items-center justify-between p-4 border-b border-white/20">
+                  <button
+                    onClick={() => setIsSidebarOpen(false)}
+                    className="text-gray-300 hover:text-white p-1 rounded-full"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                  <button
+                    onClick={() => window.location.href = '/'}
+                    className="flex items-center gap-2 text-[#cc9b3b] hover:text-white"
+                  >
+                    <Home className="w-5 h-5" />
+                    Principal
+                  </button>
                 </div>
-                <div className="flex gap-2 flex-wrap">
-                  {statusConfig[selectedOrder.status as keyof typeof statusConfig].actions.map(action => (
-                    <Button key={action} onClick={() => updateOrderStatus(selectedOrder.id, action)}>
-                      {action}
-                    </Button>
-                  ))}
+
+                {/* Tabs */}
+                <div className="flex flex-col flex-1 overflow-y-auto">
+                  <div className="flex space-x-2 p-4 border-b border-white/20">
+                    <button
+                      onClick={() => setTab('orders')}
+                      className={`px-3 py-1 rounded-md ${tab === 'orders' ? 'bg-black text-[#cc9b3b]' : 'text-white'}`}
+                    >
+                      Pedidos
+                    </button>
+                    <button
+                      onClick={() => setTab('users')}
+                      className={`px-3 py-1 rounded-md ${tab === 'users' ? 'bg-black text-[#cc9b3b]' : 'text-white'}`}
+                    >
+                      Usuários
+                    </button>
+                    <button
+                      onClick={() => setTab('products')}
+                      className={`px-3 py-1 rounded-md ${tab === 'products' ? 'bg-black text-[#cc9b3b]' : 'text-white'}`}
+                    >
+                      Produtos
+                    </button>
+                  </div>
                 </div>
-                <div className="h-64 mt-4">
-                  <OrderMap order={selectedOrder} />
-                </div>
-              </div>
-            ) : (
-              <p>Nenhum pedido selecionado.</p>
-            )}
-          </DialogContent>
-        </Dialog>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
+
+        {/* Order Modal */}
+        <OrderModal
+          selectedOrderId={selectedOrderId}
+          setSelectedOrderId={setSelectedOrderId}
+          selectedOrder={selectedOrder}
+          loadingOrder={loadingOrder}
+          refreshOrders={fetchOrders}
+        />
       </div>
     </ProtectedRoute>
   )
 }
+  
