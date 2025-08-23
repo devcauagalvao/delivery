@@ -26,7 +26,7 @@ type OrderItem = {
   quantity: number
   unit_price_cents: number
   subtotal_cents: number
-  product: {
+  product?: {
     name: string
   }
 }
@@ -43,7 +43,7 @@ const STATUS_LABELS: Record<string, string> = {
   cancelled: 'Cancelado',
 }
 
-const STATUS_ACTIONS: Record<string, { label: string; next: string; icon: any }[]> = {
+const STATUS_ACTIONS: Record<string, { label: string; next: string; icon: React.FC<any> }[]> = {
   pending: [
     { label: 'Aceitar', next: 'accepted', icon: Check },
     { label: 'Rejeitar', next: 'rejected', icon: X },
@@ -161,21 +161,6 @@ export default function AdminOrdersPage() {
               )}
             </div>
 
-            <div className="my-4">
-              <h3 className="font-semibold mb-2 text-[#cc9b3b]">Itens do pedido</h3>
-              <ul className="divide-y divide-gray-700">
-                {order.order_items.map((item) => (
-                  <li key={item.id} className="py-2 flex justify-between items-center text-sm">
-                    <span>
-                      {item.product?.name || 'Produto'}{' '}
-                      <span className="text-gray-400">x{item.quantity}</span>
-                    </span>
-                    <span className="font-semibold">{formatPrice(item.subtotal_cents)}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
             {order.delivery_lat && order.delivery_lng && (
               <div className="mb-4">
                 <h3 className="font-semibold mb-2 flex items-center gap-2 text-[#cc9b3b]">
@@ -206,22 +191,25 @@ export default function AdminOrdersPage() {
             )}
 
             <div className="flex flex-wrap gap-2 mt-4">
-              {STATUS_ACTIONS[order.status]?.map((action) => (
-                <button
-                  key={action.next}
-                  disabled={updating}
-                  onClick={() => updateOrderStatus(order.id, action.next)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg font-semibold transition ${
-                    updating
-                      ? 'bg-gray-700 text-gray-400 cursor-not-allowed'
-                      : 'bg-[#cc9b3b] hover:bg-[#b88b30] text-black'
-                  }`}
-                  aria-label={`Atualizar status para ${action.label}`}
-                >
-                  <action.icon className="w-4 h-4" />
-                  {action.label}
-                </button>
-              ))}
+              {STATUS_ACTIONS[order.status]?.map((action) => {
+                const Icon = action.icon
+                return (
+                  <button
+                    key={action.next}
+                    disabled={updating}
+                    onClick={() => updateOrderStatus(order.id, action.next)}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg font-semibold transition ${
+                      updating
+                        ? 'bg-gray-700 text-gray-400 cursor-not-allowed'
+                        : 'bg-[#cc9b3b] hover:bg-[#b88b30] text-black'
+                    }`}
+                    aria-label={`Atualizar status para ${action.label}`}
+                  >
+                    <Icon className="w-4 h-4" />
+                    {action.label}
+                  </button>
+                )
+              })}
             </div>
           </motion.div>
         </motion.div>
