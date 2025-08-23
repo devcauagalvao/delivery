@@ -27,10 +27,9 @@ export default function AuthPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
-
     try {
       if (isSignUp) {
-        // Criação de usuário
+        // Criar usuário
         const { data, error } = await supabase.auth.signUp({
           email: formData.email,
           password: formData.password,
@@ -48,7 +47,6 @@ export default function AuthPage() {
               role: 'customer'
             }])
           if (profileError) throw profileError
-
           toast.success('Conta criada com sucesso!')
           router.push('/')
         }
@@ -70,7 +68,7 @@ export default function AuthPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-6 bg-[#1a1a1a] relative overflow-hidden">
+    <div className="min-h-screen flex items-center justify-center p-6 bg-[#111111] relative overflow-hidden">
       {/* Fundo animado */}
       <div className="absolute inset-0 opacity-10 pointer-events-none grid grid-cols-6 gap-6">
         {Array.from({ length: 36 }).map((_, i) => (
@@ -87,10 +85,10 @@ export default function AuthPage() {
 
       <div className="w-full max-w-md relative z-10">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-          <GlassCard className="relative p-8 bg-[#1a1a1a]/40 backdrop-blur-md border border-white/20 rounded-3xl">
+          <GlassCard className="p-8 bg-[#1a1a1a]/40 backdrop-blur-md border border-white/20 rounded-3xl shadow-lg">
             <div className="text-center mb-8 flex flex-col items-center">
               <img src="/taurus-black-burguer/logo-taurus.png" alt="Logo" className="w-32 h-auto mb-2" />
-              <p className="text-white">{isSignUp ? 'Crie sua conta' : 'Faça seu login'}</p>
+              <p className="text-white font-semibold text-lg">{isSignUp ? 'Crie sua conta' : 'Faça seu login'}</p>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-6">
@@ -103,7 +101,7 @@ export default function AuthPage() {
                       placeholder="Nome completo"
                       value={formData.fullName}
                       onChange={e => setFormData(prev => ({ ...prev, fullName: e.target.value }))}
-                      className="pl-12 bg-[#1a1a1a]/20 border border-[#333] text-white placeholder:text-white/50 focus:border-white focus:ring-white rounded-full"
+                      className="pl-12 bg-[#1a1a1a]/20 border border-[#333] text-white placeholder:text-white/50 focus:border-[#cc9b3b] focus:ring-2 focus:ring-[#cc9b3b]/50 rounded-full transition-all"
                       required
                     />
                   </div>
@@ -114,7 +112,7 @@ export default function AuthPage() {
                       placeholder="Telefone"
                       value={formData.phone}
                       onChange={e => setFormData(prev => ({ ...prev, phone: e.target.value }))}
-                      className="pl-12 bg-[#1a1a1a]/20 border border-[#333] text-white placeholder:text-white/50 focus:border-white focus:ring-white rounded-full"
+                      className="pl-12 bg-[#1a1a1a]/20 border border-[#333] text-white placeholder:text-white/50 focus:border-[#cc9b3b] focus:ring-2 focus:ring-[#cc9b3b]/50 rounded-full transition-all"
                     />
                   </div>
                 </>
@@ -127,7 +125,7 @@ export default function AuthPage() {
                   placeholder="Email"
                   value={formData.email}
                   onChange={e => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                  className="pl-12 bg-[#1a1a1a]/20 border border-[#333] text-white placeholder:text-white/50 focus:border-white focus:ring-white rounded-full"
+                  className="pl-12 bg-[#1a1a1a]/20 border border-[#333] text-white placeholder:text-white/50 focus:border-[#cc9b3b] focus:ring-2 focus:ring-[#cc9b3b]/50 rounded-full transition-all"
                   required
                 />
               </div>
@@ -139,7 +137,7 @@ export default function AuthPage() {
                   placeholder="Senha"
                   value={formData.password}
                   onChange={e => setFormData(prev => ({ ...prev, password: e.target.value }))}
-                  className="pl-12 pr-12 bg-[#1a1a1a]/20 border border-[#333] text-white placeholder:text-white/50 focus:border-white focus:ring-white rounded-full"
+                  className="pl-12 pr-12 bg-[#1a1a1a]/20 border border-[#333] text-white placeholder:text-white/50 focus:border-[#cc9b3b] focus:ring-2 focus:ring-[#cc9b3b]/50 rounded-full transition-all"
                   required
                 />
                 <Button
@@ -156,20 +154,26 @@ export default function AuthPage() {
               <Button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-[#cc9b3b] hover:bg-[#b68830] text-black font-bold rounded-full py-3"
+                className="w-full bg-[#cc9b3b] hover:bg-[#b68830] text-black font-bold rounded-full py-3 shadow-lg transition-all duration-300"
               >
                 {loading ? 'Aguarde...' : isSignUp ? 'Criar Conta' : 'Entrar'}
               </Button>
             </form>
 
             <div className="mt-6 text-center">
-              <button type="button" onClick={() => setIsSignUp(!isSignUp)} className="text-white hover:underline">
+              <button
+                type="button"
+                onClick={() => setIsSignUp(!isSignUp)}
+                className="text-white hover:underline font-medium"
+              >
                 {isSignUp ? 'Já tem conta? Faça login' : 'Não tem conta? Cadastre-se'}
               </button>
             </div>
 
             <div className="mt-4 text-center">
-              <Link href="/" className="text-white hover:text-white underline">Voltar ao cardápio</Link>
+              <Link href="/" className="text-white hover:text-[#cc9b3b] underline">
+                Voltar ao cardápio
+              </Link>
             </div>
           </GlassCard>
         </motion.div>

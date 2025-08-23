@@ -1,7 +1,7 @@
 'use client'
 
-import React from 'react'
-import { Search, Shield, LogOut, LogIn } from 'lucide-react'
+import React, { useState } from 'react'
+import { Search, Shield, LogOut, LogIn, Bell } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import Link from 'next/link'
@@ -15,6 +15,7 @@ interface HeaderProps {
   user: any
   profile: any
   signOut: () => Promise<void>
+  notifications?: Array<{ id: string, message: string, status: string }>
 }
 
 const StyledWrapper = styled.div`
@@ -64,8 +65,10 @@ export default function Header({
   user,
   profile,
   signOut,
+  notifications = [],
 }: HeaderProps) {
-  const [menuOpen, setMenuOpen] = React.useState(false)
+  const [menuOpen, setMenuOpen] = useState(false)
+  const [notifOpen, setNotifOpen] = useState(false)
 
   const handleSignOut = async () => {
     try {
@@ -109,7 +112,47 @@ export default function Header({
             />
           </div>
 
-          <div className="flex items-center gap-4 flex-shrink-0">
+          <div className="flex items-center gap-4 flex-shrink-0 relative">
+            {/* Notificações */}
+            {user && (
+              <div className="relative">
+                <button
+                  onClick={() => setNotifOpen(!notifOpen)}
+                  className="relative p-2 rounded-full bg-[#1a1a1a]/60 hover:bg-[#1a1a1a]/80 transition-colors"
+                >
+                  <Bell className="w-6 h-6 text-[#cc9b3b]" />
+                  {notifications.length > 0 && (
+                    <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-pulse"></span>
+                  )}
+                </button>
+                <AnimatePresence>
+                  {notifOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      className="absolute right-0 mt-2 w-72 bg-[#1a1a1a]/90 border border-[#333] rounded-xl shadow-lg shadow-black/50 z-50 overflow-hidden"
+                    >
+                      {notifications.length === 0 ? (
+                        <div className="text-gray-400 p-4 text-center">
+                          Sem novas notificações
+                        </div>
+                      ) : (
+                        notifications.map((notif) => (
+                          <div
+                            key={notif.id}
+                            className="px-4 py-3 border-b border-[#333] text-white text-sm hover:bg-[#222]/40 transition-colors cursor-pointer"
+                          >
+                            {notif.message} <span className="text-[#cc9b3b] font-medium">({notif.status})</span>
+                          </div>
+                        ))
+                      )}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            )}
+
             {user ? (
               <div className="flex items-center gap-4">
                 <span className="text-gray-400 hidden sm:inline">
