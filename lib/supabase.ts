@@ -12,6 +12,7 @@ if (!supabaseUrl || !supabaseAnonKey) {
   )
 }
 
+// ⚠️ Use este client no **client-side**
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
 // ==========================
@@ -77,39 +78,46 @@ export type OrderWithItems = Order & {
 // ==========================
 // Função para criar admin
 // ==========================
+// ⚠️ Esta função deve rodar **somente no servidor** com service_role_key
 export async function createAdmin() {
-  // Criar usuário no Auth
-  const { data, error } = await supabase.auth.admin.createUser({
-    email: 'glvinformatica2024@gmail.com',
-    password: '1ao8',
-    email_confirm: true
-  })
-
-  if (error) {
-    console.error('Erro ao criar usuário admin:', error)
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    console.error('Service Role Key não definida no .env')
     return
   }
 
-  console.log('Usuário criado com sucesso, ID:', data.user.id)
+  const supabaseAdmin = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY
+  )
 
-  // Criar profile no banco
-  const { error: profileError } = await supabase
-    .from('profiles')
-    .insert({
-      id: data.user.id,
-      full_name: 'Administrador GLV',
-      role: 'admin'
+  try {
+    const { data, error } = await supabaseAdmin.auth.admin.createUser({
+      email: 'glvinformatica2024@gmail.com',
+      password: '1ao8',
+      email_confirm: true
     })
 
-  if (profileError) {
-    console.error('Erro ao criar profile admin:', profileError)
-    return
-  }
+    if (error) throw error
 
-  console.log('Profile admin criado com sucesso!')
+    console.log('Usuário criado com sucesso, ID:', data.user.id)
+
+    const { error: profileError } = await supabaseAdmin
+      .from('profiles')
+      .insert({
+        id: data.user.id,
+        full_name: 'Administrador GLV',
+        role: 'admin'
+      })
+
+    if (profileError) throw profileError
+
+    console.log('Profile admin criado com sucesso!')
+  } catch (err: any) {
+    console.error('Erro ao criar admin:', err.message || err)
+  }
 }
 
 // ==========================
 // Rodar a função se necessário
 // ==========================
-// createAdmin() // descomente para criar o admin
+// createAdmin() // Execute apenas **uma vez** no servidor
