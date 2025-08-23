@@ -3,7 +3,6 @@ import { createClient } from '@supabase/supabase-js'
 // ==========================
 // Supabase client
 // ==========================
-// Use variáveis de ambiente para não expor a chave diretamente
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
@@ -16,9 +15,8 @@ if (!supabaseUrl || !supabaseAnonKey) {
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
 // ==========================
-// Tipos do projeto (baseados no schema real do banco)
+// Tipos do projeto
 // ==========================
-
 export interface Profile {
   id: string // vem do auth.users
   full_name: string | null
@@ -68,10 +66,50 @@ export interface OrderItem {
   quantity: number
   unit_price_cents: number
   subtotal_cents: number
-  product?: Product // relacionamento manual
+  product?: Product
 }
 
 export type OrderWithItems = Order & {
   order_items: (OrderItem & { product: Product })[]
   profile?: Profile
 }
+
+// ==========================
+// Função para criar admin
+// ==========================
+export async function createAdmin() {
+  // Criar usuário no Auth
+  const { data, error } = await supabase.auth.admin.createUser({
+    email: 'glvinformatica2024@gmail.com',
+    password: '1ao8',
+    email_confirm: true
+  })
+
+  if (error) {
+    console.error('Erro ao criar usuário admin:', error)
+    return
+  }
+
+  console.log('Usuário criado com sucesso, ID:', data.user.id)
+
+  // Criar profile no banco
+  const { error: profileError } = await supabase
+    .from('profiles')
+    .insert({
+      id: data.user.id,
+      full_name: 'Administrador GLV',
+      role: 'admin'
+    })
+
+  if (profileError) {
+    console.error('Erro ao criar profile admin:', profileError)
+    return
+  }
+
+  console.log('Profile admin criado com sucesso!')
+}
+
+// ==========================
+// Rodar a função se necessário
+// ==========================
+// createAdmin() // descomente para criar o admin

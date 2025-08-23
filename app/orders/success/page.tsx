@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { motion } from 'framer-motion'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -17,7 +17,7 @@ import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
-import { v4 as uuidv4 } from 'uuid' // <-- Import para gerar UUID
+import { v4 as uuidv4 } from 'uuid'
 
 /* ------------------- Validação ------------------- */
 const checkoutSchema = z.object({
@@ -79,6 +79,11 @@ export default function CheckoutPage() {
   const formatPrice = (cents: number) =>
     new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(cents / 100)
 
+  const totalCents = useMemo(
+    () => state.items.reduce((acc, item) => acc + item.product.price_cents * item.quantity, 0),
+    [state.items]
+  )
+
   /* ------------------- Submit ------------------- */
   const onSubmit = async (data: CheckoutData) => {
     if (!user || !user.id) {
@@ -91,17 +96,15 @@ export default function CheckoutPage() {
       return
     }
 
-    if (!location) {
-      setLocationError('É obrigatório capturar sua localização para entrega.')
+    if (!location && !data.address) {
+      setLocationError('É obrigatório capturar sua localização ou informar um endereço.')
       return
     }
 
     setLoading(true)
     try {
-      // Gerar UUID para o pedido
       const orderId = uuidv4()
 
-      // 1. Preparar itens do pedido com UUID
       const orderItems = state.items.map(item => ({
         id: uuidv4(),
         product_id: item.product.id,
@@ -111,18 +114,15 @@ export default function CheckoutPage() {
         order_id: orderId
       }))
 
-      const totalCents = orderItems.reduce((acc, item) => acc + item.subtotal_cents, 0)
-
-      // 2. Montar payload do pedido
       const orderPayload = {
-        id: orderId, // <-- UUID válido
-        customer_id: user.id, // UUID do usuário
+        id: orderId,
+        customer_id: user.id,
         status: 'pending',
         payment_method: data.paymentMethod,
         total_cents: totalCents,
         notes: data.notes || null,
-        delivery_lat: location.lat,
-        delivery_lng: location.lng,
+        delivery_lat: location?.lat || null,
+        delivery_lng: location?.lng || null,
         change_for_cents:
           data.paymentMethod === 'cash' && data.changeFor
             ? Math.round(parseFloat(data.changeFor) * 100)
@@ -132,23 +132,12 @@ export default function CheckoutPage() {
         delivery_address: data.address || null,
       }
 
-      // 3. Inserir pedido
-      const { data: orderData, error: orderError } = await supabase
-        .from('orders')
-        .insert([orderPayload])
-        .select('id')
-        .single()
-
+      const { error: orderError } = await supabase.from('orders').insert([orderPayload])
       if (orderError) throw orderError
 
-      // 4. Inserir itens do pedido
-      const { error: itemsError } = await supabase
-        .from('order_items')
-        .insert(orderItems)
-
+      const { error: itemsError } = await supabase.from('order_items').insert(orderItems)
       if (itemsError) throw itemsError
 
-      // 5. Limpar carrinho e redirecionar
       clearCart()
       toast.success('Pedido realizado com sucesso!')
       router.push(`/orders/success?orderId=${orderId}`)
@@ -164,7 +153,7 @@ export default function CheckoutPage() {
   if (state.items.length === 0) {
     return (
       <div className="min-h-screen flex items-center justify-center p-6 bg-[#1a1a1a]">
-        <GlassCard className="p-8 text-center bg-[#1a1a1a] border border-neutral-200">
+        <GlassCard className="p-8 text-center bg-[#1a1a1a]/80 border border-white/20">
           <p className="text-white text-lg mb-4">Carrinho vazio</p>
           <Link href="/">
             <Button className="bg-[#e11d48] text-white hover:bg-[#be123c]">Voltar ao cardápio</Button>
@@ -176,69 +165,95 @@ export default function CheckoutPage() {
 
   return (
     <div className="min-h-screen p-6 bg-[#1a1a1a]">
-      <div className="max-w-2xl mx-auto">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
-          {/* Header */}
-          <div className="flex items-center gap-4 mb-8">
-            <Link href="/">
-              <Button variant="default" size="sm" className="text-white hover:text-white">
-                <ArrowLeft className="w-5 h-5" />
-              </Button>
-            </Link>
-            <div>
-              <h1 className="text-3xl font-bold text-white">Finalizar Pedido</h1>
-              <p className="text-white/70">Complete os dados para entrega</p>
-            </div>
+      <div className="max-w-2xl mx-auto space-y-6">
+        {/* Header */}
+        <div className="flex items-center gap-4 mb-8">
+          <Link href="/">
+            <Button variant="default" size="sm" className="text-white hover:text-white">
+              <ArrowLeft className="w-5 h-5" />
+            </Button>
+          </Link>
+          <div>
+            <h1 className="text-3xl font-bold text-white">Finalizar Pedido</h1>
+            <p className="text-white/70">Revise os produtos e complete os dados para entrega</p>
           </div>
+        </div>
 
-          {/* Form */}
-          <GlassCard className="p-6 bg-[#1a1a1a]/50 border border-white/20 text-white">
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-white">Informações de Entrega</h3>
-                <Input {...form.register('fullName')} placeholder="Nome completo" className="bg-[#111] border border-white/20 text-white placeholder:text-white/50 rounded-2xl" />
-                <Input {...form.register('phone')} placeholder="Telefone" className="bg-[#111] border border-white/20 text-white placeholder:text-white/50 rounded-2xl" />
-                <Input {...form.register('address')} placeholder="Endereço (opcional)" className="bg-[#111] border border-white/20 text-white placeholder:text-white/50 rounded-2xl" />
-                <Button
-                  type="button"
-                  onClick={requestLocation}
-                  className={`w-full border-2 flex items-center justify-center gap-2 ${location ? 'border-[#cc9b3b] bg-[#cc9b3b]/10 text-[#cc9b3b]' : 'border-white/20 text-white hover:border-[#cc9b3b] hover:text-[#cc9b3b] rounded-2xl'}`}
-                >
-                  <MapPin className="w-5 h-5" />
-                  {location ? 'Localização Capturada ✓' : 'Usar Minha Localização Atual'}
-                </Button>
-                {locationError && <p className="text-[#cc9b3b] text-sm">{locationError}</p>}
-              </div>
-
-              {/* Pagamento */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-white">Forma de Pagamento</h3>
-                <div className="grid grid-cols-1 gap-3">
-                  {['cash', 'card', 'pix'].map(method => {
-                    const Icon = method === 'cash' ? Banknote : method === 'card' ? CreditCard : Smartphone
-                    const label = method === 'cash' ? 'Dinheiro' : method === 'card' ? 'Cartão' : 'PIX'
-                    return (
-                      <label key={method} className={`flex items-center gap-3 p-4 rounded-2xl cursor-pointer border-2 transition-all ${paymentMethod === method ? 'border-[#cc9b3b] bg-[#cc9b3b]/10' : 'border-white/20 bg-[#111]'}`}>
-                        <input type="radio" value={method} {...form.register('paymentMethod')} className="sr-only" />
-                        <Icon className={`w-6 h-6 ${paymentMethod === method ? 'text-[#cc9b3b]' : 'text-white'}`} />
-                        <div className={`font-medium ${paymentMethod === method ? 'text-[#cc9b3b]' : 'text-white'}`}>{label}</div>
-                      </label>
-                    )
-                  })}
-                  {paymentMethod === 'cash' && (
-                    <Input {...form.register('changeFor')} placeholder="Troco para (opcional)" className="bg-[#111] border border-white/20 text-white placeholder:text-white/50 rounded-2xl" />
-                  )}
+        {/* Resumo do pedido */}
+        <GlassCard className="p-6 bg-[#1a1a1a]/50 border border-white/20 text-white space-y-3">
+          <h2 className="text-xl font-semibold">Resumo do Pedido</h2>
+          {state.items.map(item => (
+            <div key={item.product.id} className="flex justify-between items-center border-b border-white/20 pb-2">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-lg overflow-hidden bg-[#111] border border-white/20 flex-shrink-0">
+                  <Image
+                    src={item.product.image_url || '/placeholder.png'}
+                    alt={item.product.name}
+                    width={48}
+                    height={48}
+                    className="object-cover w-full h-full"
+                  />
                 </div>
+                <span>{item.product.name} x{item.quantity}</span>
               </div>
+              <span className="font-semibold text-[#cc9b3b]">{formatPrice(item.product.price_cents * item.quantity)}</span>
+            </div>
+          ))}
+          <div className="flex justify-between font-bold text-lg pt-2">
+            <span>Total</span>
+            <span className="text-[#cc9b3b]">{formatPrice(totalCents)}</span>
+          </div>
+        </GlassCard>
 
-              <div className="text-center">
-                <Button type="submit" disabled={loading} className="w-full bg-[#cc9b3b] text-white hover:bg-[#b28732] rounded-2xl">
-                  {loading ? 'Processando...' : 'Finalizar Pedido'}
-                </Button>
+        {/* Formulário */}
+        <GlassCard className="p-6 bg-[#1a1a1a]/50 border border-white/20 text-white">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            {/* Dados de entrega */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold">Informações de Entrega</h3>
+              <Input {...form.register('fullName')} placeholder="Nome completo" className="bg-[#111] border border-white/20 text-white placeholder:text-white/50 rounded-2xl" disabled={loading} />
+              <Input {...form.register('phone')} placeholder="Telefone" className="bg-[#111] border border-white/20 text-white placeholder:text-white/50 rounded-2xl" disabled={loading} />
+              <Input {...form.register('address')} placeholder="Endereço (opcional)" className="bg-[#111] border border-white/20 text-white placeholder:text-white/50 rounded-2xl" disabled={loading} />
+              <Button
+                type="button"
+                onClick={requestLocation}
+                disabled={loading}
+                className={`w-full border-2 flex items-center justify-center gap-2 ${location ? 'border-[#cc9b3b] bg-[#cc9b3b]/10 text-[#cc9b3b]' : 'border-white/20 text-white hover:border-[#cc9b3b] hover:text-[#cc9b3b] rounded-2xl'}`}
+              >
+                <MapPin className="w-5 h-5" />
+                {location ? 'Localização Capturada ✓' : 'Usar Minha Localização Atual'}
+              </Button>
+              {locationError && <p className="text-[#cc9b3b] text-sm">{locationError}</p>}
+            </div>
+
+            {/* Pagamento */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold">Forma de Pagamento</h3>
+              <div className="grid grid-cols-1 gap-3">
+                {['cash', 'card', 'pix'].map(method => {
+                  const Icon = method === 'cash' ? Banknote : method === 'card' ? CreditCard : Smartphone
+                  const label = method === 'cash' ? 'Dinheiro' : method === 'card' ? 'Cartão' : 'PIX'
+                  return (
+                    <label key={method} className={`flex items-center gap-3 p-4 rounded-2xl cursor-pointer border-2 transition-all ${paymentMethod === method ? 'border-[#cc9b3b] bg-[#cc9b3b]/10' : 'border-white/20 bg-[#111]'}`}>
+                      <input type="radio" value={method} {...form.register('paymentMethod')} className="sr-only" disabled={loading} />
+                      <Icon className={`w-6 h-6 ${paymentMethod === method ? 'text-[#cc9b3b]' : 'text-white'}`} />
+                      <div className={`font-medium ${paymentMethod === method ? 'text-[#cc9b3b]' : 'text-white'}`}>{label}</div>
+                    </label>
+                  )
+                })}
+                {paymentMethod === 'cash' && (
+                  <Input {...form.register('changeFor')} placeholder="Troco para (opcional)" className="bg-[#111] border border-white/20 text-white placeholder:text-white/50 rounded-2xl" disabled={loading} />
+                )}
               </div>
-            </form>
-          </GlassCard>
-        </motion.div>
+            </div>
+
+            <div className="text-center">
+              <Button type="submit" disabled={loading} className="w-full bg-[#cc9b3b] text-white hover:bg-[#b28732] rounded-2xl">
+                {loading ? 'Processando...' : 'Finalizar Pedido'}
+              </Button>
+            </div>
+          </form>
+        </GlassCard>
       </div>
     </div>
   )

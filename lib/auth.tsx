@@ -1,8 +1,17 @@
 'use client'
 
-import { createContext, useContext, useEffect, useState } from 'react'
+import React, { createContext, useContext, useEffect, useState, useMemo } from 'react'
 import { User } from '@supabase/supabase-js'
-import { supabase, Profile } from './supabase'
+import { supabase } from './supabase'
+
+// Defina a interface Profile de acordo com sua tabela 'profiles'
+export interface Profile {
+  id: string
+  full_name?: string
+  phone?: string
+  created_at?: string
+  [key: string]: any
+}
 
 interface AuthContextType {
   user: User | null
@@ -11,27 +20,43 @@ interface AuthContextType {
   signOut: () => Promise<void>
 }
 
-const AuthContext = createContext<AuthContextType>({
-  user: null,
-  profile: null,
-  loading: true,
-  signOut: async () => { }
-})
+const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    const getInitialSession = async () => {
-      setLoading(true)
+  // Função para buscar perfil do usuário
+  const fetchProfile = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single()
 
+      if (error) {
+        console.error('Erro ao buscar perfil:', error)
+        return null
+      }
+
+      setProfile(data)
+      return data
+    } catch (err) {
+      console.error('Erro inesperado ao buscar perfil:', err)
+      return null
+    }
+  }
+
+  // Inicializa sessão
+  useEffect(() => {
+    const initAuth = async () => {
+      setLoading(true)
       const { data: { session }, error } = await supabase.auth.getSession()
+
       if (error) {
         console.error('Erro ao obter sessão:', error)
-        setLoading(false)
-        return
       }
 
       const currentUser = session?.user ?? null
@@ -44,8 +69,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setLoading(false)
     }
 
-    getInitialSession()
+    initAuth()
 
+    // Listener para mudanças de autenticação
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
         const newUser = session?.user ?? null
@@ -56,49 +82,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } else {
           setProfile(null)
         }
-
-        setLoading(false)
       }
     )
 
     return () => subscription.unsubscribe()
   }, [])
 
-  const fetchProfile = async (userId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .single()
-
-      if (error) {
-        console.error('Erro ao buscar perfil:', error)
-        return
-      }
-
-      setProfile(data)
-    } catch (err) {
-      console.error('Erro inesperado ao buscar perfil:', err)
-    }
-  }
-
+  // Função para deslogar
   const signOut = async () => {
     const { error } = await supabase.auth.signOut()
     if (error) console.error('Erro ao sair:', error)
   }
 
-  return (
-    <AuthContext.Provider value={{ user, profile, loading, signOut }}>
-      {children}
-    </AuthContext.Provider>
-  )
+  // Memoiza o contexto para evitar re-renderizações desnecessárias
+  const value = useMemo(() => ({ user, profile, loading, signOut }), [user, profile, loading])
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
 
+// Hook para consumir o AuthContext
 export const useAuth = () => {
   const context = useContext(AuthContext)
-  if (!context) {
-    throw new Error('useAuth must be used within AuthProvider')
-  }
+  if (!context) throw new Error('useAuth deve ser usado dentro de um AuthProvider')
   return context
 }

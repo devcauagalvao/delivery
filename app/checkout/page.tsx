@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { motion } from 'framer-motion'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -43,16 +43,15 @@ export default function CheckoutPage() {
     defaultValues: {
       fullName: profile?.full_name || '',
       phone: profile?.phone || '',
-      paymentMethod: 'cash'
-    }
+      paymentMethod: 'cash',
+    },
   })
 
   const paymentMethod = form.watch('paymentMethod')
 
   /* ------------------- Proteção de rota ------------------- */
   useEffect(() => {
-    if (!user) router.push('/auth')
-    if (state.items.length === 0) router.push('/')
+    if (!user || state.items.length === 0) router.push('/')
   }, [user, state.items, router])
 
   /* ------------------- Captura localização ------------------- */
@@ -78,78 +77,71 @@ export default function CheckoutPage() {
   const formatPrice = (cents: number) =>
     new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(cents / 100)
 
+  const totalCents = useMemo(
+    () => state.items.reduce((acc, item) => acc + item.product.price_cents * item.quantity, 0),
+    [state.items]
+  )
+
   /* ------------------- Submit ------------------- */
   const onSubmit = async (data: CheckoutData) => {
-    if (!user?.id) {
-      toast.error('Usuário não autenticado.')
-      return
-    }
+    if (!user?.id) return toast.error('Usuário não autenticado.')
+    if (state.items.length === 0) return toast.error('Carrinho vazio.')
 
-    if (state.items.length === 0) {
-      toast.error('Carrinho vazio')
-      return
-    }
-
-    if (!location) {
-      setLocationError('É obrigatório capturar sua localização para entrega.')
+    if (!location && !data.address) {
+      setLocationError('É obrigatório capturar sua localização ou informar endereço.')
       return
     }
 
     setLoading(true)
     try {
-      // 1. Preparar itens do pedido
+      // Preparar itens do pedido
       const orderItems = state.items.map(item => ({
         product_id: item.product.id,
         quantity: item.quantity,
         unit_price_cents: item.product.price_cents,
-        subtotal_cents: item.product.price_cents * item.quantity
+        subtotal_cents: item.product.price_cents * item.quantity,
       }))
 
-      const totalCents = orderItems.reduce((acc, item) => acc + item.subtotal_cents, 0)
-
-      // 2. Montar payload do pedido
+      // Montar payload do pedido
       const orderPayload = {
-        customer_id: user.id, // UUID válido do Supabase
+        customer_id: user.id,
         status: 'pending',
         payment_method: data.paymentMethod,
         total_cents: totalCents,
         notes: data.notes || null,
-        delivery_lat: location.lat,
-        delivery_lng: location.lng,
+        delivery_lat: location?.lat || null,
+        delivery_lng: location?.lng || null,
+        customer_name: data.fullName,
+        customer_phone: data.phone.replace(/\D/g, ''), // remover caracteres não numéricos
+        delivery_address: data.address || null,
         change_for_cents:
           data.paymentMethod === 'cash' && data.changeFor
             ? Math.round(parseFloat(data.changeFor) * 100)
             : null,
-        customer_name: data.fullName,
-        customer_phone: data.phone,
-        delivery_address: data.address || null,
       }
 
-      // 3. Inserir pedido
+      // Inserir pedido
       const { data: orderData, error: orderError } = await supabase
         .from('orders')
         .insert([orderPayload])
         .select('id')
         .single()
 
-      if (orderError) throw orderError
-      const orderId = orderData?.id
-      if (!orderId) throw new Error('ID do pedido não retornado')
+      if (!orderData?.id || orderError) throw orderError || new Error('ID do pedido não retornado')
 
-      // 4. Inserir itens do pedido vinculando order_id
+      // Inserir itens vinculando order_id
       const { error: itemsError } = await supabase
         .from('order_items')
-        .insert(orderItems.map(item => ({ ...item, order_id: orderId })))
-
+        .insert(orderItems.map(item => ({ ...item, order_id: orderData.id })))
       if (itemsError) throw itemsError
 
-      // 5. Limpar carrinho e redirecionar
+      // Limpar carrinho e redirecionar
       clearCart()
       toast.success('Pedido realizado com sucesso!')
-      router.push(`/orders/success?orderId=${orderId}`)
+      router.push(`/orders/success?orderId=${orderData.id}`)
     } catch (error: any) {
       console.error('Erro no checkout:', error)
-      toast.error('Erro ao processar pedido: ' + (error.message || error))
+      toast.error('Erro ao processar pedido: ' + (error?.message || 'Erro desconhecido'))
     } finally {
       setLoading(false)
     }
@@ -216,7 +208,7 @@ export default function CheckoutPage() {
             </div>
             <div className="border-t border-white/20 pt-4 flex justify-between font-bold text-[#cc9b3b] text-lg">
               <span>Total</span>
-              <span>{formatPrice(state.total)}</span>
+              <span>{formatPrice(totalCents)}</span>
             </div>
           </GlassCard>
 
@@ -232,7 +224,9 @@ export default function CheckoutPage() {
                 <Button
                   type="button"
                   onClick={requestLocation}
-                  className={`w-full border-2 flex items-center justify-center gap-2 ${location ? 'border-[#cc9b3b] bg-[#cc9b3b]/10 text-[#cc9b3b]' : 'border-white/20 text-white hover:border-[#cc9b3b] hover:text-[#cc9b3b] rounded-2xl'}`}
+                  className={`w-full border-2 flex items-center justify-center gap-2 ${
+                    location ? 'border-[#cc9b3b] bg-[#cc9b3b]/10 text-[#cc9b3b]' : 'border-white/20 text-white hover:border-[#cc9b3b] hover:text-[#cc9b3b] rounded-2xl'
+                  }`}
                 >
                   <MapPin className="w-5 h-5" />
                   {location ? 'Localização Capturada ✓' : 'Usar Minha Localização Atual'}
@@ -269,13 +263,15 @@ export default function CheckoutPage() {
 
               <Button
                 type="submit"
-                disabled={loading || !location}
-                className={`w-full rounded-full py-4 text-lg font-semibold ${!location ? 'bg-white/20 text-white/50 cursor-not-allowed' : 'bg-[#cc9b3b] hover:bg-[#b88b30] text-white'}`}
+                disabled={loading || (!location && !form.getValues('address'))}
+                className={`w-full rounded-full py-4 text-lg font-semibold ${
+                  !location && !form.getValues('address') ? 'bg-white/20 text-white/50 cursor-not-allowed' : 'bg-[#cc9b3b] hover:bg-[#b88b30] text-white'
+                }`}
               >
-                {loading ? 'Processando...' : `Confirmar Pedido - ${formatPrice(state.total)}`}
+                {loading ? 'Processando...' : `Confirmar Pedido - ${formatPrice(totalCents)}`}
               </Button>
-              {!location && (
-                <p className="text-[#cc9b3b] text-center text-sm mt-2">É obrigatório capturar sua localização para finalizar o pedido.</p>
+              {!location && !form.getValues('address') && (
+                <p className="text-[#cc9b3b] text-center text-sm mt-2">É obrigatório capturar sua localização ou informar endereço para finalizar o pedido.</p>
               )}
             </form>
           </GlassCard>

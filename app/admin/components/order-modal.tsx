@@ -1,26 +1,25 @@
 'use client'
 
 import dynamic from 'next/dynamic'
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { Button } from '@/components/ui/button'
 import { OrderWithItems, supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
-import { X, Hamburger } from 'lucide-react'
+import { X, Loader } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 
-const OrderMap = dynamic(
-  () => import('@/components/order-map').then(mod => mod.OrderMap),
-  { ssr: false }
-)
+const OrderMap = dynamic(() => import('@/components/order-map').then(mod => mod.OrderMap), {
+  ssr: false,
+})
 
 const statusConfig = {
-  pending: { actions: ['accept', 'reject'] as const },
-  accepted: { actions: ['preparing'] as const },
-  preparing: { actions: ['out_for_delivery'] as const },
-  out_for_delivery: { actions: ['delivered'] as const },
-  delivered: { actions: [] as const },
-  rejected: { actions: [] as const },
-  cancelled: { actions: [] as const },
+  pending: ['accept', 'reject'] as const,
+  accepted: ['preparing'] as const,
+  preparing: ['out_for_delivery'] as const,
+  out_for_delivery: ['delivered'] as const,
+  delivered: [] as const,
+  rejected: [] as const,
+  cancelled: [] as const,
 }
 
 interface OrderModalProps {
@@ -41,7 +40,10 @@ export default function OrderModal({
   const [updating, setUpdating] = useState(false)
 
   const formatPrice = (cents: number) =>
-    new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(cents / 100)
+    useMemo(
+      () => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(cents / 100),
+      [cents]
+    )
 
   const updateOrderStatus = async (orderId: string, action: string) => {
     const actionToStatus: Record<string, string> = {
@@ -55,17 +57,20 @@ export default function OrderModal({
     const newStatus = actionToStatus[action]
     if (!newStatus) return toast.error('Ação inválida')
 
-    setUpdating(true)
-    const { error } = await supabase.from('orders').update({ status: newStatus }).eq('id', orderId)
+    try {
+      setUpdating(true)
+      const { error } = await supabase.from('orders').update({ status: newStatus }).eq('id', orderId)
 
-    if (error) {
-      toast.error(`Erro ao atualizar pedido: ${error.message}`)
-    } else {
+      if (error) throw error
+
       toast.success(`Pedido marcado como "${newStatus}"`)
       setSelectedOrderId(null)
       refreshOrders()
+    } catch (err: any) {
+      toast.error(`Erro ao atualizar pedido: ${err.message}`)
+    } finally {
+      setUpdating(false)
     }
-    setUpdating(false)
   }
 
   return (
@@ -86,6 +91,7 @@ export default function OrderModal({
             {/* Botão de fechar */}
             <button
               onClick={() => setSelectedOrderId(null)}
+              aria-label="Fechar modal"
               className="absolute top-2 sm:top-4 right-2 sm:right-4 text-gray-300 hover:text-white z-10 bg-black/30 rounded-full p-1 sm:p-2 transition-colors duration-200"
             >
               <X className="w-4 sm:w-5 h-4 sm:h-5" strokeWidth={4} />
@@ -94,9 +100,7 @@ export default function OrderModal({
             {/* Loading */}
             {loadingOrder ? (
               <div className="flex flex-col items-center justify-center py-10">
-                <motion.div className="mb-4">
-                  <Hamburger className="w-12 h-12 sm:w-16 sm:h-16 text-[#cc9b3b]" />
-                </motion.div>
+                <Loader className="animate-spin w-12 h-12 sm:w-16 sm:h-16 text-[#cc9b3b] mb-4" />
                 <span className="text-base sm:text-lg font-bold text-[#cc9b3b]">Carregando...</span>
               </div>
             ) : selectedOrder ? (
@@ -105,21 +109,15 @@ export default function OrderModal({
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4 text-sm sm:text-base">
                   <div>
                     <p className="text-gray-400">Cliente</p>
-                    <p className="font-semibold text-base sm:text-lg">
-                      {selectedOrder.profile?.full_name}
-                    </p>
+                    <p className="font-semibold text-base sm:text-lg">{selectedOrder.profile?.full_name}</p>
                   </div>
                   <div>
                     <p className="text-gray-400">Telefone</p>
-                    <p className="font-semibold text-base sm:text-lg">
-                      {selectedOrder.profile?.phone || '-'}
-                    </p>
+                    <p className="font-semibold text-base sm:text-lg">{selectedOrder.profile?.phone || '-'}</p>
                   </div>
                   <div>
                     <p className="text-gray-400">Total</p>
-                    <p className="font-semibold text-base sm:text-lg">
-                      {formatPrice(selectedOrder.total_cents)}
-                    </p>
+                    <p className="font-semibold text-base sm:text-lg">{formatPrice(selectedOrder.total_cents)}</p>
                   </div>
                   {selectedOrder.delivery_address && (
                     <div>
@@ -133,7 +131,7 @@ export default function OrderModal({
                 <div className="bg-black/20 backdrop-blur-md rounded-lg p-2 sm:p-4 border border-white/10">
                   <h4 className="font-semibold mb-1 sm:mb-2 text-sm sm:text-base">Itens</h4>
                   <ul className="list-disc list-inside space-y-1 text-gray-200 text-xs sm:text-sm max-h-40 sm:max-h-48 overflow-y-auto">
-                    {selectedOrder.order_items.map((item) => (
+                    {selectedOrder.order_items.map(item => (
                       <li key={item.id}>
                         {item.product?.name} x{item.quantity} — {formatPrice(item.unit_price_cents)}
                       </li>
@@ -143,32 +141,28 @@ export default function OrderModal({
 
                 {/* Ações */}
                 <div className="flex flex-wrap gap-1 sm:gap-2">
-                  {statusConfig[selectedOrder.status as keyof typeof statusConfig].actions.map(
-                    (action) => (
-                      <Button
-                        key={action}
-                        onClick={() => updateOrderStatus(selectedOrder.id, action)}
-                        className="capitalize text-xs sm:text-sm"
-                        disabled={updating}
-                      >
-                        {action.replace(/_/g, ' ')}
-                      </Button>
-                    )
-                  )}
+                  {statusConfig[selectedOrder.status as keyof typeof statusConfig].map(action => (
+                    <Button
+                      key={action}
+                      onClick={() => updateOrderStatus(selectedOrder.id, action)}
+                      className="capitalize text-xs sm:text-sm"
+                      disabled={updating}
+                    >
+                      {action.replace(/_/g, ' ')}
+                    </Button>
+                  ))}
                 </div>
 
                 {/* Mapa */}
-                {selectedOrder.delivery_lat &&
-                  selectedOrder.delivery_lng &&
-                  selectedOrder.profile?.full_name && (
-                    <div className="h-48 sm:h-64 rounded-lg overflow-hidden border border-white/20">
-                      <OrderMap
-                        latitude={selectedOrder.delivery_lat}
-                        longitude={selectedOrder.delivery_lng}
-                        customerName={selectedOrder.profile.full_name}
-                      />
-                    </div>
-                  )}
+                {selectedOrder.delivery_lat && selectedOrder.delivery_lng && selectedOrder.profile?.full_name && (
+                  <div className="h-48 sm:h-64 rounded-lg overflow-hidden border border-white/20">
+                    <OrderMap
+                      latitude={selectedOrder.delivery_lat}
+                      longitude={selectedOrder.delivery_lng}
+                      customerName={selectedOrder.profile.full_name}
+                    />
+                  </div>
+                )}
               </div>
             ) : (
               <p className="text-center py-6 sm:py-10 text-gray-400 text-sm sm:text-base">
