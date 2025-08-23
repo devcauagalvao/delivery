@@ -17,15 +17,15 @@ const mapMenuToSupabaseProduct = (product: MenuProduct): SupabaseProduct => ({
   id: product.id,
   name: product.name,
   description: product.description,
-  price_cents: product.price * 100,
+  price_cents: product.price * 100, // converte para centavos
   image_url: product.image,
-  active: product.active,
-  created_at: product.created_at,
-  updated_at: product.updated_at,
+  active: product.active ?? true,
+  created_at: product.created_at ?? new Date().toISOString(),
+  updated_at: product.updated_at ?? new Date().toISOString(),
 })
 
 export function ProductCard({ product }: ProductCardProps) {
-  const { addItem } = useCart()
+  const { addItem, state: cartState } = useCart()
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -37,13 +37,16 @@ export function ProductCard({ product }: ProductCardProps) {
   const handleAddToCart = () => {
     const supabaseProduct = mapMenuToSupabaseProduct(product)
     addItem(supabaseProduct)
+
     toast(`${product.name} adicionado ao carrinho!`, {
       description: 'Você pode finalizar a compra no carrinho.',
       duration: 3000,
-      icon: <CheckCircle className="text-white mr-4" />,
+      icon: <CheckCircle className="text-white mr-2" />,
       className: 'bg-green-600 text-white border border-green-700',
     })
   }
+
+  const alreadyInCart = cartState.items.some(item => item.product.id === product.id)
 
   return (
     <motion.div
@@ -85,11 +88,15 @@ export function ProductCard({ product }: ProductCardProps) {
 
           <Button
             onClick={(e) => {
-              e.stopPropagation();
-              handleAddToCart();
+              e.stopPropagation()
+              handleAddToCart()
             }}
             size="sm"
-            className="bg-red-500 hover:bg-red-600 text-gray-100 rounded-full p-3 shadow-md transition-all"
+            className={`rounded-full p-3 shadow-md transition-all ${
+              alreadyInCart
+                ? 'bg-green-600 hover:bg-green-700 text-white'
+                : 'bg-red-500 hover:bg-red-600 text-gray-100'
+            }`}
           >
             <Plus className="w-5 h-5" strokeWidth={4} />
           </Button>

@@ -1,13 +1,13 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Search, Shield, LogOut, LogIn, Bell } from 'lucide-react'
-import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import Link from 'next/link'
 import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
 import styled from 'styled-components'
+import { createClient } from '@supabase/supabase-js'
 
 interface HeaderProps {
   searchQuery: string
@@ -15,9 +15,43 @@ interface HeaderProps {
   user: any
   profile: any
   signOut: () => Promise<void>
-  notifications?: Array<{ id: string, message: string, status: string }>
 }
 
+interface Notification {
+  id: string
+  message: string
+  status: string
+}
+
+// ==========================
+// Supabase client
+// ==========================
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+)
+
+async function fetchOrderNotifications() {
+  const { data, error } = await supabase
+    .from('orders')
+    .select('id, customer_name, status')
+    .in('status', ['accepted', 'preparing', 'out_for_delivery', 'delivered'])
+
+  if (error) {
+    console.error('Erro ao buscar pedidos:', error)
+    return []
+  }
+
+  return data.map((order: any) => ({
+    id: order.id,
+    message: `Pedido de ${order.customer_name} está ${order.status.replace('_', ' ')}`,
+    status: order.status
+  })) as Notification[]
+}
+
+// ==========================
+// Styled Components
+// ==========================
 const StyledWrapper = styled.div`
   .hamburger {
     cursor: pointer;
@@ -59,16 +93,19 @@ const StyledWrapper = styled.div`
   }
 `
 
+// ==========================
+// Header Component
+// ==========================
 export default function Header({
   searchQuery,
   setSearchQuery,
   user,
   profile,
-  signOut,
-  notifications = [],
+  signOut
 }: HeaderProps) {
   const [menuOpen, setMenuOpen] = useState(false)
   const [notifOpen, setNotifOpen] = useState(false)
+  const [notifications, setNotifications] = useState<Notification[]>([])
 
   const handleSignOut = async () => {
     try {
@@ -78,6 +115,20 @@ export default function Header({
       console.error('Erro ao sair:', error)
     }
   }
+
+  useEffect(() => {
+    if (!user) return
+
+    const updateNotifications = async () => {
+      const notifs = await fetchOrderNotifications()
+      setNotifications(notifs)
+    }
+
+    updateNotifications()
+
+    const interval = setInterval(updateNotifications, 10000) // a cada 10s
+    return () => clearInterval(interval)
+  }, [user])
 
   const buttonStyles =
     'group flex items-center justify-center px-4 py-2 rounded-2xl font-semibold transition-all duration-300 shadow-lg shadow-black/50 hover:shadow-[#cc9b3b]/50 hover:scale-105 hover:backdrop-brightness-125 backdrop-blur-md'
@@ -143,7 +194,8 @@ export default function Header({
                             key={notif.id}
                             className="px-4 py-3 border-b border-[#333] text-white text-sm hover:bg-[#222]/40 transition-colors cursor-pointer"
                           >
-                            {notif.message} <span className="text-[#cc9b3b] font-medium">({notif.status})</span>
+                            {notif.message}{' '}
+                            <span className="text-[#cc9b3b] font-medium">({notif.status})</span>
                           </div>
                         ))
                       )}
