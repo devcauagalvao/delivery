@@ -66,29 +66,38 @@ export default function AdminOrdersPage() {
   const [selectedOrder, setSelectedOrder] = useState<OrderWithItems | null>(null)
   const [updating, setUpdating] = useState(false)
 
-  const fetchOrders = async () => {
-    setLoading(true)
-    const { data, error } = await supabase
-      .from('orders')
-      .select('*, order_items(*, product:products(name))')
-      .order('created_at', { ascending: false })
-
-    if (error) {
-      toast.error('Erro ao carregar pedidos')
-      setOrders([])
-    } else {
-      setOrders(data as OrderWithItems[])
-    }
-    setLoading(false)
-  }
-
   useEffect(() => {
-    fetchOrders()
+    let isMounted = true
+
+    const fetchOrdersSafe = async () => {
+      if (!isMounted) return
+      setLoading(true)
+      const { data, error } = await supabase
+        .from('orders')
+        .select('*, order_items(*, product:products(name))')
+        .order('created_at', { ascending: false })
+
+      if (!isMounted) return
+      if (error) {
+        toast.error('Erro ao carregar pedidos')
+        setOrders([])
+      } else {
+        setOrders(data as OrderWithItems[])
+      }
+      setLoading(false)
+    }
+
+    fetchOrdersSafe()
+
     const channel = supabase
       .channel('public:orders')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, fetchOrders)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, fetchOrdersSafe)
       .subscribe()
-    return () => channel.unsubscribe()
+
+    return () => {
+      isMounted = false
+      channel.unsubscribe()
+    }
   }, [])
 
   const updateOrderStatus = async (orderId: string, newStatus: string) => {
@@ -98,7 +107,9 @@ export default function AdminOrdersPage() {
       toast.error('Erro ao atualizar status')
     } else {
       toast.success('Status atualizado!')
-      fetchOrders()
+      setOrders((prev) =>
+        prev.map((order) => (order.id === orderId ? { ...order, status: newStatus } : order))
+      )
       if (selectedOrder?.id === orderId) setSelectedOrder(null)
     }
     setUpdating(false)
