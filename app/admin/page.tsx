@@ -26,9 +26,7 @@ type OrderItem = {
   quantity: number
   unit_price_cents: number
   subtotal_cents: number
-  product?: {
-    name: string
-  }
+  product?: { name: string }
 }
 
 type OrderWithItems = Order & { order_items: OrderItem[] }
@@ -69,9 +67,10 @@ export default function AdminOrdersPage() {
   useEffect(() => {
     let isMounted = true
 
-    const fetchOrdersSafe = async () => {
+    const fetchOrders = async () => {
       if (!isMounted) return
       setLoading(true)
+
       const { data, error } = await supabase
         .from('orders')
         .select('*, order_items(*, product:products(name))')
@@ -87,11 +86,11 @@ export default function AdminOrdersPage() {
       setLoading(false)
     }
 
-    fetchOrdersSafe()
+    fetchOrders()
 
     const channel = supabase
       .channel('public:orders')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, fetchOrdersSafe)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, fetchOrders)
       .subscribe()
 
     return () => {
@@ -102,7 +101,11 @@ export default function AdminOrdersPage() {
 
   const updateOrderStatus = async (orderId: string, newStatus: string) => {
     setUpdating(true)
-    const { error } = await supabase.from('orders').update({ status: newStatus }).eq('id', orderId)
+    const { error } = await supabase
+      .from('orders')
+      .update({ status: newStatus, updated_at: new Date().toISOString() })
+      .eq('id', orderId)
+
     if (error) {
       toast.error('Erro ao atualizar status')
     } else {
@@ -112,6 +115,7 @@ export default function AdminOrdersPage() {
       )
       if (selectedOrder?.id === orderId) setSelectedOrder(null)
     }
+
     setUpdating(false)
   }
 

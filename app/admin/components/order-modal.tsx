@@ -1,7 +1,7 @@
 'use client'
 
 import dynamic from 'next/dynamic'
-import { useState, useMemo } from 'react'
+import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { OrderWithItems, supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
@@ -40,10 +40,7 @@ export default function OrderModal({
   const [updating, setUpdating] = useState(false)
 
   const formatPrice = (cents: number) =>
-    useMemo(
-      () => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(cents / 100),
-      [cents]
-    )
+    new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(cents / 100)
 
   const updateOrderStatus = async (orderId: string, action: string) => {
     const actionToStatus: Record<string, string> = {
@@ -60,7 +57,6 @@ export default function OrderModal({
     try {
       setUpdating(true)
       const { error } = await supabase.from('orders').update({ status: newStatus }).eq('id', orderId)
-
       if (error) throw error
 
       toast.success(`Pedido marcado como "${newStatus}"`)
@@ -109,7 +105,7 @@ export default function OrderModal({
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4 text-sm sm:text-base">
                   <div>
                     <p className="text-gray-400">Cliente</p>
-                    <p className="font-semibold text-base sm:text-lg">{selectedOrder.profile?.full_name}</p>
+                    <p className="font-semibold text-base sm:text-lg">{selectedOrder.profile?.full_name || '-'}</p>
                   </div>
                   <div>
                     <p className="text-gray-400">Telefone</p>
@@ -133,7 +129,7 @@ export default function OrderModal({
                   <ul className="list-disc list-inside space-y-1 text-gray-200 text-xs sm:text-sm max-h-40 sm:max-h-48 overflow-y-auto">
                     {selectedOrder.order_items.map(item => (
                       <li key={item.id}>
-                        {item.product?.name} x{item.quantity} — {formatPrice(item.unit_price_cents)}
+                        {item.product?.name || 'Produto'} x{item.quantity} — {formatPrice(item.unit_price_cents)}
                       </li>
                     ))}
                   </ul>

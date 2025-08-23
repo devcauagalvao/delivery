@@ -18,7 +18,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 
-/* ------------------- Validação ------------------- */
+// ------------------- Validação -------------------
 const checkoutSchema = z.object({
   fullName: z.string().min(2, 'Nome deve ter pelo menos 2 caracteres'),
   phone: z.string().min(10, 'Telefone deve ter pelo menos 10 dígitos'),
@@ -49,31 +49,29 @@ export default function CheckoutPage() {
 
   const paymentMethod = form.watch('paymentMethod')
 
-  /* ------------------- Proteção de rota ------------------- */
+  // Proteção de rota
   useEffect(() => {
     if (!user || state.items.length === 0) router.push('/')
   }, [user, state.items, router])
 
-  /* ------------------- Captura localização ------------------- */
-  const requestLocation = async () => {
+  // Captura localização
+  const requestLocation = () => {
     if (!navigator.geolocation) {
       setLocationError('Geolocalização não suportada pelo navegador')
       return
     }
     setLocationError('')
     navigator.geolocation.getCurrentPosition(
-      (position) => {
-        setLocation({ lat: position.coords.latitude, lng: position.coords.longitude })
-        toast.success('Localização capturada com sucesso!')
+      (pos) => {
+        setLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude })
+        toast.success('Localização capturada!')
       },
-      () => {
-        setLocationError('Erro ao obter localização. Verifique as permissões.')
-      },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+      () => setLocationError('Erro ao obter localização. Permissões negadas.'),
+      { enableHighAccuracy: true, timeout: 10000 }
     )
   }
 
-  /* ------------------- Helpers ------------------- */
+  // Helpers
   const formatPrice = (cents: number) =>
     new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(cents / 100)
 
@@ -82,27 +80,21 @@ export default function CheckoutPage() {
     [state.items]
   )
 
-  /* ------------------- Submit ------------------- */
+  // Submit
   const onSubmit = async (data: CheckoutData) => {
     if (!user?.id) return toast.error('Usuário não autenticado.')
     if (state.items.length === 0) return toast.error('Carrinho vazio.')
-
-    if (!location && !data.address) {
-      setLocationError('É obrigatório capturar sua localização ou informar endereço.')
-      return
-    }
+    if (!location && !data.address) return setLocationError('Informe endereço ou capture a localização.')
 
     setLoading(true)
     try {
-      // Preparar itens do pedido
-      const orderItems = state.items.map(item => ({
+      const orderItems = state.items.map((item) => ({
         product_id: item.product.id,
         quantity: item.quantity,
         unit_price_cents: item.product.price_cents,
         subtotal_cents: item.product.price_cents * item.quantity,
       }))
 
-      // Montar payload do pedido
       const orderPayload = {
         customer_id: user.id,
         status: 'pending',
@@ -112,7 +104,7 @@ export default function CheckoutPage() {
         delivery_lat: location?.lat || null,
         delivery_lng: location?.lng || null,
         customer_name: data.fullName,
-        customer_phone: data.phone.replace(/\D/g, ''), // remover caracteres não numéricos
+        customer_phone: data.phone.replace(/\D/g, ''),
         delivery_address: data.address || null,
         change_for_cents:
           data.paymentMethod === 'cash' && data.changeFor
@@ -120,7 +112,6 @@ export default function CheckoutPage() {
             : null,
       }
 
-      // Inserir pedido
       const { data: orderData, error: orderError } = await supabase
         .from('orders')
         .insert([orderPayload])
@@ -129,29 +120,26 @@ export default function CheckoutPage() {
 
       if (!orderData?.id || orderError) throw orderError || new Error('ID do pedido não retornado')
 
-      // Inserir itens vinculando order_id
       const { error: itemsError } = await supabase
         .from('order_items')
-        .insert(orderItems.map(item => ({ ...item, order_id: orderData.id })))
+        .insert(orderItems.map((item) => ({ ...item, order_id: orderData.id })))
       if (itemsError) throw itemsError
 
-      // Limpar carrinho e redirecionar
       clearCart()
-      toast.success('Pedido realizado com sucesso!')
+      toast.success('Pedido realizado!')
       router.push(`/orders/success?orderId=${orderData.id}`)
-    } catch (error: any) {
-      console.error('Erro no checkout:', error)
-      toast.error('Erro ao processar pedido: ' + (error?.message || 'Erro desconhecido'))
+    } catch (err: any) {
+      console.error(err)
+      toast.error('Erro ao processar pedido: ' + (err?.message || 'Erro desconhecido'))
     } finally {
       setLoading(false)
     }
   }
 
-  /* ------------------- UI ------------------- */
   if (state.items.length === 0) {
     return (
       <div className="min-h-screen flex items-center justify-center p-6 bg-[#1a1a1a]">
-        <GlassCard className="p-8 text-center bg-[#1a1a1a] border border-neutral-200">
+        <GlassCard className="p-8 text-center bg-[#1a1a1a] border border-white/20">
           <p className="text-white text-lg mb-4">Carrinho vazio</p>
           <Link href="/">
             <Button className="bg-[#e11d48] text-white hover:bg-[#be123c]">Voltar ao cardápio</Button>
@@ -163,12 +151,12 @@ export default function CheckoutPage() {
 
   return (
     <div className="min-h-screen p-6 bg-[#1a1a1a]">
-      <div className="max-w-2xl mx-auto">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
+      <div className="max-w-2xl mx-auto space-y-6">
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
           {/* Header */}
           <div className="flex items-center gap-4 mb-8">
             <Link href="/">
-              <Button variant="default" size="sm" className="text-white hover:text-white">
+              <Button variant="default" size="sm">
                 <ArrowLeft className="w-5 h-5" />
               </Button>
             </Link>
@@ -180,9 +168,9 @@ export default function CheckoutPage() {
 
           {/* Resumo do pedido */}
           <GlassCard className="p-6 bg-[#1a1a1a]/50 border border-white/20 text-white">
-            <h2 className="text-xl font-semibold text-white mb-4">Produtos do Pedido</h2>
+            <h2 className="text-xl font-semibold mb-4">Produtos do Pedido</h2>
             <div className="space-y-4 mb-4">
-              {state.items.map(item => (
+              {state.items.map((item) => (
                 <div key={item.product.id} className="flex items-center gap-4 border-b border-white/20 pb-3">
                   <div className="w-16 h-16 flex-shrink-0 rounded-lg overflow-hidden border border-white/20 bg-[#111]">
                     <Image
@@ -195,12 +183,14 @@ export default function CheckoutPage() {
                   </div>
                   <div className="flex-1">
                     <div className="flex justify-between items-center">
-                      <span className="font-semibold text-white">{item.product.name}</span>
+                      <span className="font-semibold">{item.product.name}</span>
                       <span className="text-[#cc9b3b]">{formatPrice(item.product.price_cents)}</span>
                     </div>
                     <div className="flex justify-between items-center text-sm mt-1">
                       <span className="text-white/70">Qtd: {item.quantity}</span>
-                      <span className="font-bold text-[#cc9b3b]">{formatPrice(item.product.price_cents * item.quantity)}</span>
+                      <span className="font-bold text-[#cc9b3b]">
+                        {formatPrice(item.product.price_cents * item.quantity)}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -212,22 +202,16 @@ export default function CheckoutPage() {
             </div>
           </GlassCard>
 
-          {/* Form */}
+          {/* Formulário */}
           <GlassCard className="p-6 bg-[#1a1a1a]/50 border border-white/20 text-white">
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              {/* Dados entrega */}
+              {/* Dados de entrega */}
               <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-white">Informações de Entrega</h3>
-                <Input {...form.register('fullName')} placeholder="Nome completo" className="bg-[#111] border border-white/20 text-white placeholder:text-white/50 rounded-2xl" />
-                <Input {...form.register('phone')} placeholder="Telefone" className="bg-[#111] border border-white/20 text-white placeholder:text-white/50 rounded-2xl" />
-                <Input {...form.register('address')} placeholder="Endereço (opcional)" className="bg-[#111] border border-white/20 text-white placeholder:text-white/50 rounded-2xl" />
-                <Button
-                  type="button"
-                  onClick={requestLocation}
-                  className={`w-full border-2 flex items-center justify-center gap-2 ${
-                    location ? 'border-[#cc9b3b] bg-[#cc9b3b]/10 text-[#cc9b3b]' : 'border-white/20 text-white hover:border-[#cc9b3b] hover:text-[#cc9b3b] rounded-2xl'
-                  }`}
-                >
+                <h3 className="text-lg font-semibold">Informações de Entrega</h3>
+                <Input {...form.register('fullName')} placeholder="Nome completo" className="bg-[#111] border border-white/20 text-white rounded-2xl" />
+                <Input {...form.register('phone')} placeholder="Telefone" className="bg-[#111] border border-white/20 text-white rounded-2xl" />
+                <Input {...form.register('address')} placeholder="Endereço (opcional)" className="bg-[#111] border border-white/20 text-white rounded-2xl" />
+                <Button type="button" onClick={requestLocation} className={`w-full flex items-center justify-center gap-2 ${location ? 'border-[#cc9b3b] bg-[#cc9b3b]/10 text-[#cc9b3b]' : 'border-white/20 text-white hover:border-[#cc9b3b] hover:text-[#cc9b3b] rounded-2xl'}`}>
                   <MapPin className="w-5 h-5" />
                   {location ? 'Localização Capturada ✓' : 'Usar Minha Localização Atual'}
                 </Button>
@@ -236,16 +220,16 @@ export default function CheckoutPage() {
 
               {/* Pagamento */}
               <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-white">Forma de Pagamento</h3>
+                <h3 className="text-lg font-semibold">Forma de Pagamento</h3>
                 <div className="grid grid-cols-1 gap-3">
-                  {['cash', 'card', 'pix'].map(method => {
+                  {['cash', 'card', 'pix'].map((method) => {
                     const Icon = method === 'cash' ? Banknote : method === 'card' ? CreditCard : Smartphone
                     const label = method === 'cash' ? 'Dinheiro' : method === 'card' ? 'Cartão' : 'PIX'
                     return (
                       <label key={method} className={`flex items-center gap-3 p-4 rounded-2xl cursor-pointer border-2 transition-all ${paymentMethod === method ? 'border-[#cc9b3b] bg-[#cc9b3b]/10' : 'border-white/20 bg-[#111]'}`}>
                         <input type="radio" value={method} {...form.register('paymentMethod')} className="sr-only" />
                         <Icon className={`w-6 h-6 ${paymentMethod === method ? 'text-[#cc9b3b]' : 'text-white'}`} />
-                        <div className={`font-medium ${paymentMethod === method ? 'text-[#cc9b3b]' : 'text-white'}`}>{label}</div>
+                        <div className={`${paymentMethod === method ? 'text-[#cc9b3b]' : 'text-white'} font-medium`}>{label}</div>
                       </label>
                     )
                   })}
@@ -257,16 +241,14 @@ export default function CheckoutPage() {
 
               {/* Observações */}
               <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-white">Observações</h3>
+                <h3 className="text-lg font-semibold">Observações</h3>
                 <Textarea {...form.register('notes')} placeholder="Observações sobre o pedido (opcional)" className="bg-[#111] border border-white/20 text-white rounded-2xl placeholder:text-white/50 resize-none" rows={3} />
               </div>
 
               <Button
                 type="submit"
                 disabled={loading || (!location && !form.getValues('address'))}
-                className={`w-full rounded-full py-4 text-lg font-semibold ${
-                  !location && !form.getValues('address') ? 'bg-white/20 text-white/50 cursor-not-allowed' : 'bg-[#cc9b3b] hover:bg-[#b88b30] text-white'
-                }`}
+                className={`w-full rounded-full py-4 text-lg font-semibold ${!location && !form.getValues('address') ? 'bg-white/20 text-white/50 cursor-not-allowed' : 'bg-[#cc9b3b] hover:bg-[#b88b30] text-white'}`}
               >
                 {loading ? 'Processando...' : `Confirmar Pedido - ${formatPrice(totalCents)}`}
               </Button>

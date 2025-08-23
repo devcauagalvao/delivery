@@ -18,7 +18,6 @@ export default function ProductsTab() {
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(false)
 
-  // Debounce para evitar buscar a cada tecla
   const debouncedSearch = useMemo(
     () =>
       debounce((value: string) => {
@@ -29,6 +28,7 @@ export default function ProductsTab() {
 
   useEffect(() => {
     debouncedSearch(search)
+    return () => debouncedSearch.cancel()
   }, [search, debouncedSearch])
 
   const fetchProducts = async (queryText: string = '') => {
@@ -36,26 +36,30 @@ export default function ProductsTab() {
     try {
       let query = supabase.from('products').select('*')
 
-      if (queryText) {
+      if (queryText.trim() !== '') {
         const price = Number(queryText)
-        const activeSearch = queryText.toLowerCase() === 'sim' ? true : queryText.toLowerCase() === 'não' ? false : null
+        const activeSearch =
+          queryText.toLowerCase() === 'sim'
+            ? true
+            : queryText.toLowerCase() === 'não'
+            ? false
+            : null
 
-        if (!isNaN(price)) {
-          query = query.or(`price_cents.eq.${price}`)
-        }
+        const filters: string[] = []
 
-        if (activeSearch !== null) {
-          query = query.or(`active.eq.${activeSearch}`)
-        }
+        if (!isNaN(price)) filters.push(`price_cents.eq.${price}`)
+        if (activeSearch !== null) filters.push(`active.eq.${activeSearch}`)
+        filters.push(`name.ilike.%${queryText}%`)
 
-        query = query.or(`name.ilike.%${queryText}%`)
+        query = query.or(filters.join(','))
       }
 
       const { data, error } = await query.order('created_at', { ascending: false })
       if (error) throw error
       setProducts(data as Product[])
     } catch (err: any) {
-      console.error(err)
+      console.error('Erro ao buscar produtos:', err.message)
+      setProducts([])
     } finally {
       setLoading(false)
     }
@@ -63,7 +67,9 @@ export default function ProductsTab() {
 
   const formatPrice = (cents: number) =>
     new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(cents / 100)
-  const formatDate = (dateString: string) => new Date(dateString).toLocaleString('pt-BR')
+
+  const formatDate = (dateString?: string) =>
+    dateString ? new Date(dateString).toLocaleString('pt-BR') : '-'
 
   return (
     <div className="flex flex-col gap-6">
@@ -74,7 +80,7 @@ export default function ProductsTab() {
           type="text"
           placeholder="Buscar por nome, preço ou ativo"
           value={search}
-          onChange={e => setSearch(e.target.value)}
+          onChange={(e) => setSearch(e.target.value)}
           className="w-full pl-10 pr-4 py-2 bg-black/80 text-white placeholder-gray-400 rounded-lg border border-white/20 shadow-md focus:outline-none focus:border-[#cc9b3b] focus:ring-1 focus:ring-[#cc9b3b] transition-colors"
         />
       </div>

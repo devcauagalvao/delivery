@@ -48,7 +48,7 @@ export default function AdminSidebar({ orders, setSelectedOrderId, goBack }: Adm
           />
         )}
 
-        {/* Sidebar com glassmorphism */}
+        {/* Sidebar */}
         {isOpen && (
           <motion.div
             className="fixed top-0 left-0 h-full w-80 bg-black/50 backdrop-blur-lg border-r border-white/20 shadow-2xl z-50 flex flex-col"
@@ -75,7 +75,7 @@ export default function AdminSidebar({ orders, setSelectedOrderId, goBack }: Adm
             </div>
 
             {/* Tabs */}
-            <div className="flex flex-col flex-1 overflow-y-auto">
+            <div className="flex flex-col flex-1 overflow-hidden">
               <div className="flex flex-col p-4 gap-2">
                 {tabs.map((t) => (
                   <motion.button
@@ -95,7 +95,7 @@ export default function AdminSidebar({ orders, setSelectedOrderId, goBack }: Adm
               </div>
 
               {/* Conteúdo das tabs */}
-              <div className="p-4 flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-black/40">
+              <div className="flex-1 p-4 overflow-y-auto scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-black/40">
                 {tab === 'orders' && <OrdersTab orders={orders} setSelectedOrderId={setSelectedOrderId} />}
                 {tab === 'users' && <UsersTab />}
                 {tab === 'products' && <ProductsTab />}

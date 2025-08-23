@@ -11,22 +11,30 @@ import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 
+interface FormData {
+  email: string
+  password: string
+  fullName: string
+  phone: string
+}
+
 export default function AuthPage() {
   const [isSignUp, setIsSignUp] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const router = useRouter()
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<FormData>({
     email: '',
     password: '',
     fullName: '',
     phone: ''
   })
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     setLoading(true)
+
     try {
       if (isSignUp) {
         // Criar usuário
@@ -61,7 +69,7 @@ export default function AuthPage() {
         router.push('/')
       }
     } catch (err: any) {
-      toast.error(err.message)
+      toast.error(err.message || 'Ocorreu um erro ao autenticar')
     } finally {
       setLoading(false)
     }
@@ -88,7 +96,9 @@ export default function AuthPage() {
           <GlassCard className="p-8 bg-[#1a1a1a]/40 backdrop-blur-md border border-white/20 rounded-3xl shadow-lg">
             <div className="text-center mb-8 flex flex-col items-center">
               <img src="/taurus-black-burguer/logo-taurus.png" alt="Logo" className="w-32 h-auto mb-2" />
-              <p className="text-white font-semibold text-lg">{isSignUp ? 'Crie sua conta' : 'Faça seu login'}</p>
+              <p className="text-white font-semibold text-lg">
+                {isSignUp ? 'Crie sua conta' : 'Faça seu login'}
+              </p>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-6">
@@ -105,6 +115,7 @@ export default function AuthPage() {
                       required
                     />
                   </div>
+
                   <div className="relative">
                     <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-white w-5 h-5" />
                     <Input

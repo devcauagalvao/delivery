@@ -9,7 +9,7 @@ import { ProductModal } from '@/components/product-modal'
 import Footer from '@/components/footer'
 import { menu, Product } from '@/lib/menu'
 import { useAuth } from '@/lib/auth'
-import Header from '../components/header'
+import Header from '@/components/header'
 import { Hamburger } from 'lucide-react'
 
 export default function HomePage() {
@@ -18,32 +18,32 @@ export default function HomePage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [cartOpen, setCartOpen] = useState(false)
   const [filter, setFilter] = useState<'all' | 'classic' | 'black'>('all')
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
 
   const { user, profile, signOut } = useAuth()
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
+
   const handleCardClick = (product: Product) => setSelectedProduct(product)
   const handleModalClose = () => setSelectedProduct(null)
 
+  // Inicializa produtos
   useEffect(() => {
     setProducts(menu)
     setLoading(false)
   }, [])
 
-  const filteredProducts = products.filter((product) => {
+  // Filtra produtos por busca e categoria
+  const filteredProducts = products.filter(product => {
     const matchesSearch =
       product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (product.description && product.description.toLowerCase().includes(searchQuery.toLowerCase()))
-
-    const matchesFilter =
-      filter === 'all' || product.categories?.includes(filter)
-
+      (product.description?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false)
+    const matchesFilter = filter === 'all' || product.categories?.includes(filter)
     return matchesSearch && matchesFilter
   })
 
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-black text-[#cc9b3b]">
-        <motion.div className="mb-4" >
+        <motion.div className="mb-4" animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1 }}>
           <Hamburger className="w-16 h-16" />
         </motion.div>
         <span className="text-lg font-bold">Carregando...</span>
@@ -53,6 +53,7 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-black text-gray-300">
+      {/* Header com busca */}
       <Header
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
@@ -64,12 +65,11 @@ export default function HomePage() {
       {/* Filtro de categorias */}
       <div className="w-full px-4 sm:px-6 lg:px-8 mt-6 flex justify-between items-center">
         <span className="text-sm text-gray-400">
-          {filteredProducts.length} produto{filteredProducts.length !== 1 && 's'} encontrado
-          {filteredProducts.length !== 1 && 's'}
+          {filteredProducts.length} produto{filteredProducts.length !== 1 && 's'} encontrado{filteredProducts.length !== 1 && 's'}
         </span>
         <select
           value={filter}
-          onChange={(e) => setFilter(e.target.value as 'all' | 'classic' | 'black')}
+          onChange={e => setFilter(e.target.value as 'all' | 'classic' | 'black')}
           className="
             bg-[#1a1a1a]
             text-gray-300
@@ -87,7 +87,7 @@ export default function HomePage() {
         </select>
       </div>
 
-      {/* Produtos */}
+      {/* Lista de produtos */}
       <main className="w-full px-4 sm:px-6 lg:px-8 py-6">
         {filteredProducts.length > 0 ? (
           <motion.div
@@ -100,9 +100,9 @@ export default function HomePage() {
                 key={product.id}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
-                onClick={() => handleCardClick(product)}
+                transition={{ delay: index * 0.05 }}
                 className="cursor-pointer"
+                onClick={() => handleCardClick(product)}
               >
                 <ProductCard product={product} />
               </motion.div>
@@ -112,15 +112,21 @@ export default function HomePage() {
           <div className="flex justify-center items-center h-64 text-gray-400 text-lg">
             Nenhum produto encontrado para "{searchQuery}"
           </div>
-        ) : null}
+        ) : (
+          <div className="flex justify-center items-center h-64 text-gray-400 text-lg">
+            Nenhum produto disponível
+          </div>
+        )}
       </main>
 
+      {/* Modal de produto */}
       <ProductModal product={selectedProduct} onClose={handleModalClose} />
 
-      {/* FAB + Drawer */}
+      {/* FAB + Drawer do carrinho */}
       <CartFab onClick={() => setCartOpen(true)} />
       <CartDrawer isOpen={cartOpen} onClose={() => setCartOpen(false)} />
 
+      {/* Footer */}
       <Footer />
     </div>
   )

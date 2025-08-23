@@ -15,11 +15,12 @@ type User = {
 // Debounce hook
 function useDebounce(value: string, delay: number) {
   const [debouncedValue, setDebouncedValue] = useState(value)
-  const handler = useRef<NodeJS.Timeout>()
+  const handler = useRef<NodeJS.Timeout | null>(null)
 
   useEffect(() => {
     if (handler.current) clearTimeout(handler.current)
     handler.current = setTimeout(() => setDebouncedValue(value), delay)
+
     return () => {
       if (handler.current) clearTimeout(handler.current)
     }
@@ -44,9 +45,10 @@ export default function UsersTab() {
     try {
       let query = supabase.from('profiles').select('*')
 
-      if (queryText) {
+      if (queryText.trim() !== '') {
+        // Supabase .or precisa de parênteses e o operador correto
         query = query.or(
-          `full_name.ilike.%${queryText}%,phone.ilike.%${queryText}%,role.ilike.%${queryText}%`
+          `(full_name.ilike.%${queryText}%,phone.ilike.%${queryText}%,role.ilike.%${queryText}%)`
         )
       }
 
@@ -60,18 +62,19 @@ export default function UsersTab() {
     }
   }
 
-  const formatDate = (dateString: string) => new Date(dateString).toLocaleString('pt-BR')
+  const formatDate = (dateString?: string) =>
+    dateString ? new Date(dateString).toLocaleString('pt-BR') : '-'
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Modern Search Bar */}
+      {/* Search Bar */}
       <div className="relative w-full max-w-md mx-auto">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
         <input
           type="text"
           placeholder="Buscar por nome, telefone ou role"
           value={search}
-          onChange={e => setSearch(e.target.value)}
+          onChange={(e) => setSearch(e.target.value)}
           className="w-full pl-10 pr-4 py-2 bg-black/80 text-white placeholder-gray-400 rounded-lg border border-white/20 shadow-md focus:outline-none focus:border-[#cc9b3b] focus:ring-1 focus:ring-[#cc9b3b] transition-colors"
         />
       </div>

@@ -52,12 +52,12 @@ export default function CheckoutPage() {
 
   /* ------------------- Proteção de rota ------------------- */
   useEffect(() => {
-    if (!user) router.push('/auth')
-    if (state.items.length === 0) router.push('/')
+    if (!user) return router.push('/auth')
+    if (state.items.length === 0) return router.push('/')
   }, [user, state.items, router])
 
   /* ------------------- Captura localização ------------------- */
-  const requestLocation = async () => {
+  const requestLocation = () => {
     if (!navigator.geolocation) {
       setLocationError('Geolocalização não suportada pelo navegador')
       return
@@ -68,9 +68,7 @@ export default function CheckoutPage() {
         setLocation({ lat: position.coords.latitude, lng: position.coords.longitude })
         toast.success('Localização capturada com sucesso!')
       },
-      () => {
-        setLocationError('Erro ao obter localização. Verifique as permissões.')
-      },
+      () => setLocationError('Erro ao obter localização. Verifique as permissões.'),
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
     )
   }
@@ -84,18 +82,18 @@ export default function CheckoutPage() {
     [state.items]
   )
 
+  const canSubmit = !loading && (location || form.getValues('address'))
+
   /* ------------------- Submit ------------------- */
   const onSubmit = async (data: CheckoutData) => {
-    if (!user || !user.id) {
+    if (!user?.id) {
       toast.error('Usuário não autenticado.')
       return
     }
-
     if (state.items.length === 0) {
-      toast.error('Carrinho vazio')
+      toast.error('Carrinho vazio.')
       return
     }
-
     if (!location && !data.address) {
       setLocationError('É obrigatório capturar sua localização ou informar um endereço.')
       return
@@ -128,8 +126,8 @@ export default function CheckoutPage() {
             ? Math.round(parseFloat(data.changeFor) * 100)
             : null,
         customer_name: data.fullName,
-        customer_phone: data.phone,
-        delivery_address: data.address || null,
+        customer_phone: data.phone.replace(/\D/g, ''),
+        delivery_address: data.address || null
       }
 
       const { error: orderError } = await supabase.from('orders').insert([orderPayload])
@@ -194,7 +192,10 @@ export default function CheckoutPage() {
                     className="object-cover w-full h-full"
                   />
                 </div>
-                <span>{item.product.name} x{item.quantity}</span>
+                <div className="flex flex-col">
+                  <span>{item.product.name} x{item.quantity}</span>
+                  <span className="text-sm text-white/70">{formatPrice(item.product.price_cents)} cada</span>
+                </div>
               </div>
               <span className="font-semibold text-[#cc9b3b]">{formatPrice(item.product.price_cents * item.quantity)}</span>
             </div>
@@ -212,7 +213,9 @@ export default function CheckoutPage() {
             <div className="space-y-4">
               <h3 className="text-lg font-semibold">Informações de Entrega</h3>
               <Input {...form.register('fullName')} placeholder="Nome completo" className="bg-[#111] border border-white/20 text-white placeholder:text-white/50 rounded-2xl" disabled={loading} />
+              {form.formState.errors.fullName && <p className="text-red-500 text-sm">{form.formState.errors.fullName.message}</p>}
               <Input {...form.register('phone')} placeholder="Telefone" className="bg-[#111] border border-white/20 text-white placeholder:text-white/50 rounded-2xl" disabled={loading} />
+              {form.formState.errors.phone && <p className="text-red-500 text-sm">{form.formState.errors.phone.message}</p>}
               <Input {...form.register('address')} placeholder="Endereço (opcional)" className="bg-[#111] border border-white/20 text-white placeholder:text-white/50 rounded-2xl" disabled={loading} />
               <Button
                 type="button"
@@ -247,10 +250,17 @@ export default function CheckoutPage() {
               </div>
             </div>
 
+            {/* Observações */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold">Observações</h3>
+              <Textarea {...form.register('notes')} placeholder="Observações sobre o pedido (opcional)" className="bg-[#111] border border-white/20 text-white rounded-2xl placeholder:text-white/50 resize-none" rows={3} disabled={loading} />
+            </div>
+
             <div className="text-center">
-              <Button type="submit" disabled={loading} className="w-full bg-[#cc9b3b] text-white hover:bg-[#b28732] rounded-2xl">
-                {loading ? 'Processando...' : 'Finalizar Pedido'}
+              <Button type="submit" disabled={!canSubmit} className={`w-full bg-[#cc9b3b] text-white hover:bg-[#b28732] rounded-2xl py-4 text-lg font-semibold ${!canSubmit ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                {loading ? 'Processando...' : `Finalizar Pedido - ${formatPrice(totalCents)}`}
               </Button>
+              {!canSubmit && <p className="text-[#cc9b3b] text-sm mt-2">É obrigatório capturar sua localização ou informar endereço.</p>}
             </div>
           </form>
         </GlassCard>
