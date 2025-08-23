@@ -70,11 +70,14 @@ export default function Header({
   const handleSignOut = async () => {
     try {
       await signOut()
-      setMenuOpen(false) // fecha o menu ao sair
+      setMenuOpen(false)
     } catch (error) {
       console.error('Erro ao sair:', error)
     }
   }
+
+  const buttonStyles =
+    'group flex items-center justify-center px-4 py-2 rounded-2xl font-semibold transition-all duration-300 shadow-lg shadow-black/50 hover:shadow-[#cc9b3b]/50 hover:scale-105 hover:backdrop-brightness-125 backdrop-blur-md'
 
   return (
     <motion.header className="sticky top-0 z-50 w-full border-b border-[#222222] bg-[#111111]/50 backdrop-blur-lg backdrop-saturate-150 shadow-lg">
@@ -115,37 +118,31 @@ export default function Header({
 
                 {profile?.role === 'admin' && (
                   <Link href="/admin">
-                    <Button
-                      variant="admin"
-                      className="group flex items-center justify-center"
+                    <button
+                      className={`${buttonStyles} bg-[#222222]/70 text-[#cc9b3b] border border-[#cc9b3b]`}
                     >
-                      <Shield className="w-5 h-5 shrink-0 transition-all duration-300" strokeWidth={4} />
-                      <span className="hidden group-hover:inline ml-2 transition-all duration-300 whitespace-nowrap">
-                        Admin
-                      </span>
-                    </Button>
+                      <Shield className="w-5 h-5 shrink-0 transition-all duration-300" strokeWidth={3} />
+                      <span className="ml-2">Admin</span>
+                    </button>
                   </Link>
                 )}
 
-                <Button
+                <button
                   onClick={handleSignOut}
-                  variant="logout"
-                  className="group flex items-center justify-center"
+                  className={`${buttonStyles} bg-[#cc9b3b]/20 text-[#cc9b3b] border border-[#cc9b3b]`}
                 >
-                  <LogOut className="w-5 h-5 shrink-0 transition-all duration-300" strokeWidth={4} />
-                  <span className="hidden group-hover:inline ml-2 transition-all duration-300 whitespace-nowrap">
-                    Sair
-                  </span>
-                </Button>
+                  <LogOut className="w-5 h-5 shrink-0 transition-all duration-300" strokeWidth={3} />
+                  <span className="ml-2">Sair</span>
+                </button>
               </div>
             ) : (
               <Link href="/auth">
-                <Button variant="login" className="group flex items-center justify-center">
-                  <LogIn className="w-5 h-5 shrink-0 transition-all duration-300" strokeWidth={4} />
-                  <span className="hidden group-hover:inline ml-2 transition-all duration-300 whitespace-nowrap">
-                    Entrar
-                  </span>
-                </Button>
+                <button
+                  className={`${buttonStyles} bg-[#159ADD]/30 text-[#159ADD] border border-[#159ADD]`}
+                >
+                  <LogIn className="w-5 h-5 shrink-0 transition-all duration-300" strokeWidth={3} />
+                  <span className="ml-2">Entrar</span>
+                </button>
               </Link>
             )}
           </div>
@@ -193,20 +190,25 @@ export default function Header({
                 <span className="text-gray-400">Olá, {profile?.full_name}</span>
                 {profile?.role === 'admin' && (
                   <Link href="/admin">
-                    <Button variant="admin" className="w-full">
+                    <button className={`${buttonStyles} w-full bg-[#222222]/70 text-[#cc9b3b] border border-[#cc9b3b]`}>
                       Admin
-                    </Button>
+                    </button>
                   </Link>
                 )}
-                <Button onClick={handleSignOut} variant="logout" className="w-full">
+                <button
+                  onClick={handleSignOut}
+                  className={`${buttonStyles} w-full bg-[#cc9b3b]/20 text-[#cc9b3b] border border-[#cc9b3b]`}
+                >
                   Sair
-                </Button>
+                </button>
               </>
             ) : (
               <Link href="/auth">
-                <Button variant="login" className="w-full">
+                <button
+                  className={`${buttonStyles} w-full bg-[#159ADD]/30 text-[#159ADD] border border-[#159ADD]`}
+                >
                   Entrar
-                </Button>
+                </button>
               </Link>
             )}
           </motion.div>
