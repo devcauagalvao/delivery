@@ -25,13 +25,11 @@ export default function HomePage() {
   const handleCardClick = (product: Product) => setSelectedProduct(product)
   const handleModalClose = () => setSelectedProduct(null)
 
-  // Inicializa produtos
   useEffect(() => {
     setProducts(menu)
     setLoading(false)
   }, [])
 
-  // Filtra produtos por busca e categoria
   const filteredProducts = products.filter(product => {
     const matchesSearch =
       product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -43,7 +41,7 @@ export default function HomePage() {
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-black text-[#cc9b3b]">
-        <motion.div className="mb-4" animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1 }}>
+        <motion.div className="mb-4" transition={{ repeat: Infinity, duration: 1 }}>
           <Hamburger className="w-16 h-16" />
         </motion.div>
         <span className="text-lg font-bold">Carregando...</span>

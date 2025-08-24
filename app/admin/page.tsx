@@ -77,12 +77,14 @@ export default function AdminOrdersPage() {
         .order('created_at', { ascending: false })
 
       if (!isMounted) return
+
       if (error) {
         toast.error('Erro ao carregar pedidos')
         setOrders([])
       } else {
         setOrders(data as OrderWithItems[])
       }
+
       setLoading(false)
     }
 
@@ -90,12 +92,14 @@ export default function AdminOrdersPage() {
 
     const channel = supabase
       .channel('public:orders')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, fetchOrders)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => {
+        fetchOrders()
+      })
       .subscribe()
 
     return () => {
       isMounted = false
-      channel.unsubscribe()
+      supabase.removeChannel(channel)
     }
   }, [])
 
@@ -134,13 +138,13 @@ export default function AdminOrdersPage() {
           exit={{ opacity: 0 }}
         >
           <motion.div
-            className="bg-[#1f1f23] rounded-2xl shadow-2xl w-full max-w-lg p-6 relative text-white focus:outline-none focus:ring-4 focus:ring-[#cc9b3b]/50"
+            className="bg-[#1f1f23] rounded-2xl shadow-2xl w-full max-w-lg p-6 relative text-white"
             initial={{ scale: 0.95, y: 40 }}
             animate={{ scale: 1, y: 0 }}
             exit={{ scale: 0.95, y: 40 }}
           >
             <button
-              className="absolute top-4 right-4 text-gray-400 hover:text-white focus:outline-none focus:ring-2 focus:ring-[#cc9b3b] rounded"
+              className="absolute top-4 right-4 text-gray-400 hover:text-white focus:outline-none"
               onClick={onClose}
             >
               <X className="w-6 h-6" />
@@ -228,7 +232,7 @@ export default function AdminOrdersPage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {sortedOrders.length === 0 ? (
+            {orders.length === 0 ? (
               <div className="text-center text-gray-400 col-span-full">Nenhum pedido encontrado.</div>
             ) : (
               sortedOrders.map((order) => {

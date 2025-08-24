@@ -12,14 +12,13 @@ if (!supabaseUrl || !supabaseAnonKey) {
   )
 }
 
-// ⚠️ Use este client no **client-side**
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
 // ==========================
 // Tipos do projeto
 // ==========================
 export interface Profile {
-  id: string // vem do auth.users
+  id: string
   full_name: string | null
   phone: string | null
   role: 'customer' | 'admin'
