@@ -18,12 +18,11 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 
-// ------------------- Validação -------------------
 const checkoutSchema = z.object({
   fullName: z.string().min(2, 'Nome deve ter pelo menos 2 caracteres'),
   phone: z.string().min(10, 'Telefone deve ter pelo menos 10 dígitos'),
   address: z.string().optional(),
-  paymentMethod: z.enum(['cash', 'card', 'pix']),
+  paymentMethod: z.enum(['Dinheiro', 'Cartão', 'Pix']),
   changeFor: z.string().optional(),
   notes: z.string().optional(),
 })
@@ -43,7 +42,7 @@ export default function CheckoutPage() {
     defaultValues: {
       fullName: profile?.full_name || '',
       phone: profile?.phone || '',
-      paymentMethod: 'cash',
+      paymentMethod: 'Dinheiro',
     },
   })
 
@@ -107,7 +106,7 @@ export default function CheckoutPage() {
         customer_phone: data.phone.replace(/\D/g, ''),
         delivery_address: data.address || null,
         change_for_cents:
-          data.paymentMethod === 'cash' && data.changeFor
+          data.paymentMethod === 'Dinheiro' && data.changeFor
             ? Math.round(parseFloat(data.changeFor) * 100)
             : null,
       }
@@ -233,7 +232,7 @@ export default function CheckoutPage() {
                       </label>
                     )
                   })}
-                  {paymentMethod === 'cash' && (
+                  {paymentMethod === 'Dinheiro' && (
                     <Input {...form.register('changeFor')} type="number" step="0.01" placeholder="Troco para quanto? (opcional)" className="bg-[#111] border border-white/20 text-white rounded-2xl placeholder:text-white/50" />
                   )}
                 </div>
