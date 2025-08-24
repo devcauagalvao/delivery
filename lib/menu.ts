@@ -112,3 +112,26 @@ export const menu: Product[] = [
     ingredients: ["Muçarela derretida","Chimichurri artesanal","Maionese branca","Cebola roxa","Pão brioche"]
   }
 ]
+
+export const insertProducts = async () => {
+  for (const product of menu) {
+    const { data, error } = await supabase
+      .from('products')
+      .insert([{
+        id: product.id,
+        name: product.name,
+        description: product.description || null,
+        price_cents: product.price * 100,
+        original_price_cents: null,
+        image_url: product.image,
+        active: product.active,
+        created_at: product.created_at
+      }])
+      .select('*')
+
+    if (error) console.error('Erro ao inserir produto:', product.name, error)
+    else console.log('Produto inserido:', product.name)
+  }
+}
+
+insertProducts().then(() => console.log('Todos os produtos foram inseridos!'))
