@@ -63,6 +63,7 @@ export default function AdminOrdersPage() {
   useEffect(() => {
     let isMounted = true
 
+    // Busca inicial completa
     const fetchOrders = async () => {
       if (!isMounted) return
       setLoading(true)
@@ -83,17 +84,7 @@ export default function AdminOrdersPage() {
           items: order.order_items || [],
         }))
 
-        // Notificação sonora se houver novo pedido
-        const newIds = new Set(ordersWithItems.map((o) => o.id))
-        const oldIds = previousOrderIdsRef.current
-        const isNewOrder = [...newIds].some((id) => !oldIds.has(id))
-        if (isNewOrder && notificationSoundRef.current) {
-          notificationSoundRef.current.play().catch(() => {
-            // pode falhar silenciosamente se o autoplay for bloqueado
-          })
-        }
-
-        previousOrderIdsRef.current = newIds
+        previousOrderIdsRef.current = new Set(ordersWithItems.map(o => o.id))
         setOrders(ordersWithItems)
       }
 
@@ -104,8 +95,46 @@ export default function AdminOrdersPage() {
 
     const channel = supabase
       .channel('public:orders')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => {
-        fetchOrders()
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, (payload) => {
+        if (!isMounted) return
+        if (!payload.new) return
+
+        const newOrderRaw = payload.new as Record<string, any>
+
+        const newOrder: OrderWithItems = {
+          id: newOrderRaw.id,
+          customer_name: newOrderRaw.customer_name,
+          customer_phone: newOrderRaw.customer_phone,
+          delivery_address: newOrderRaw.delivery_address ?? null,
+          payment_method: newOrderRaw.payment_method,
+          total_cents: newOrderRaw.total_cents,
+          notes: newOrderRaw.notes ?? null,
+          status: newOrderRaw.status,
+          delivery_lat: newOrderRaw.delivery_lat ?? null,
+          delivery_lng: newOrderRaw.delivery_lng ?? null,
+          items: (newOrderRaw.order_items ?? []).map((item: any) => ({
+            id: item.id,
+            order_id: item.order_id,
+            product_id: item.product_id,
+            quantity: item.quantity,
+            unit_price_cents: item.unit_price_cents,
+            subtotal_cents: item.subtotal_cents,
+            product: item.product ?? undefined,
+          })),
+        }
+
+        setOrders((prevOrders) => {
+          const exists = prevOrders.find(o => o.id === newOrder.id)
+          if (exists) {
+            return prevOrders.map(o => (o.id === newOrder.id ? newOrder : o))
+          } else {
+            previousOrderIdsRef.current.add(newOrder.id)
+            if (notificationSoundRef.current) {
+              notificationSoundRef.current.play().catch(() => { })
+            }
+            return [newOrder, ...prevOrders]
+          }
+        })
       })
       .subscribe()
 
