@@ -9,7 +9,7 @@ interface CartFabProps {
 }
 
 export function CartFab({ onClick }: CartFabProps) {
-  const { itemCount, state } = useCart()
+  const { itemCount, totalCents } = useCart()
 
   if (itemCount === 0) return null
 
@@ -43,10 +43,10 @@ export function CartFab({ onClick }: CartFabProps) {
               {itemCount}
             </motion.div>
           </div>
-          
+
           <div className="text-right">
             <div className="text-sm opacity-90">{itemCount} itens</div>
-            <div className="font-bold">{formatPrice(state.total)}</div>
+            <div className="font-bold">{formatPrice(totalCents)}</div>
           </div>
         </div>
       </motion.button>

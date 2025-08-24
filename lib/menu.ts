@@ -1,5 +1,5 @@
 import { v4 as uuidv4 } from 'uuid'
-import { supabase } from '../lib/supabase' // ajuste o caminho se necessário
+import { supabase } from '../lib/supabase'
 
 export interface Product {
   id: string
@@ -14,7 +14,6 @@ export interface Product {
   categories?: string[]
 }
 
-// Lista de produtos com UUIDs fixos
 export const menu: Product[] = [
   {
     id: uuidv4(),
@@ -114,7 +113,6 @@ export const menu: Product[] = [
   }
 ]
 
-// Função para inserir todos os produtos no Supabase
 export const insertProducts = async () => {
   for (const product of menu) {
     const { data, error } = await supabase
@@ -136,5 +134,4 @@ export const insertProducts = async () => {
   }
 }
 
-// Chame apenas **uma vez** antes de criar pedidos
 insertProducts().then(() => console.log('Todos os produtos foram inseridos!'))

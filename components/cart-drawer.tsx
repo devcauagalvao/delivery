@@ -16,8 +16,8 @@ interface CartDrawerProps {
 }
 
 export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
-  const { state, updateQuantity, removeItem } = useCart()
-  const { user } = useAuth() // retorna usuário logado ou null
+  const { state, updateQuantity, removeItem, totalCents } = useCart()
+  const { user } = useAuth()
   const router = useRouter()
 
   const formatPrice = (cents: number) =>
@@ -176,9 +176,7 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                         Total
                       </span>
                       <span className="text-2xl font-bold text-white">
-                        {state.total !== undefined
-                          ? formatPrice(state.total)
-                          : 'R$0,00'}
+                        {formatPrice(totalCents)}
                       </span>
                     </div>
 
