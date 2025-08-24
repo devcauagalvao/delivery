@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Loader2, MapPin, Check, X, Truck, Utensils, Package } from 'lucide-react'
+import { Hamburger, MapPin, Check, X, Truck, Utensils, Package, ArrowLeft } from 'lucide-react'
 
 type Order = {
   id: string
@@ -119,6 +119,11 @@ export default function AdminOrdersPage() {
     setUpdating(false)
   }
 
+  const sortedOrders = [
+    ...orders.filter((o) => o.status !== 'delivered'),
+    ...orders.filter((o) => o.status === 'delivered'),
+  ]
+
   function OrderModal({ order, onClose }: { order: OrderWithItems; onClose: () => void }) {
     return (
       <AnimatePresence>
@@ -133,47 +138,24 @@ export default function AdminOrdersPage() {
             initial={{ scale: 0.95, y: 40 }}
             animate={{ scale: 1, y: 0 }}
             exit={{ scale: 0.95, y: 40 }}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="modal-title"
           >
             <button
               className="absolute top-4 right-4 text-gray-400 hover:text-white focus:outline-none focus:ring-2 focus:ring-[#cc9b3b] rounded"
               onClick={onClose}
-              aria-label="Fechar detalhes do pedido"
             >
               <X className="w-6 h-6" />
             </button>
 
-            <h2 id="modal-title" className="text-2xl font-bold mb-4 text-[#cc9b3b]">
-              Pedido #{order.id.slice(0, 8)}
-            </h2>
+            <h2 className="text-2xl font-bold mb-4 text-[#cc9b3b]">Pedido #{order.id.slice(0, 8)}</h2>
 
             <div className="space-y-2 text-gray-300 text-sm">
-              <div>
-                <span className="font-semibold">Status:</span> {STATUS_LABELS[order.status]}
-              </div>
-              <div>
-                <span className="font-semibold">Cliente:</span> {order.customer_name}
-              </div>
-              <div>
-                <span className="font-semibold">Telefone:</span> {order.customer_phone}
-              </div>
-              <div>
-                <span className="font-semibold">Endereço:</span>{' '}
-                {order.delivery_address || <span className="italic text-gray-400">Não informado</span>}
-              </div>
-              <div>
-                <span className="font-semibold">Pagamento:</span> {order.payment_method.toUpperCase()}
-              </div>
-              <div>
-                <span className="font-semibold">Total:</span> {formatPrice(order.total_cents)}
-              </div>
-              {order.notes && (
-                <div>
-                  <span className="font-semibold">Observações:</span> {order.notes}
-                </div>
-              )}
+              <div><span className="font-semibold">Status:</span> {STATUS_LABELS[order.status]}</div>
+              <div><span className="font-semibold">Cliente:</span> {order.customer_name}</div>
+              <div><span className="font-semibold">Telefone:</span> {order.customer_phone}</div>
+              <div><span className="font-semibold">Endereço:</span> {order.delivery_address || <span className="italic text-gray-400">Não informado</span>}</div>
+              <div><span className="font-semibold">Pagamento:</span> {order.payment_method.toUpperCase()}</div>
+              <div><span className="font-semibold">Total:</span> {formatPrice(order.total_cents)}</div>
+              {order.notes && <div><span className="font-semibold">Observações:</span> {order.notes}</div>}
             </div>
 
             {order.delivery_lat && order.delivery_lng && (
@@ -188,11 +170,7 @@ export default function AdminOrdersPage() {
                   className="rounded-lg border-2 border-[#cc9b3b]"
                   loading="lazy"
                   style={{ filter: 'grayscale(0.2)' }}
-                  src={`https://www.openstreetmap.org/export/embed.html?bbox=${
-                    order.delivery_lng - 0.002
-                  },${order.delivery_lat - 0.002},${order.delivery_lng + 0.002},${
-                    order.delivery_lat + 0.002
-                  }&layer=mapnik&marker=${order.delivery_lat},${order.delivery_lng}`}
+                  src={`https://www.openstreetmap.org/export/embed.html?bbox=${order.delivery_lng - 0.002},${order.delivery_lat - 0.002},${order.delivery_lng + 0.002},${order.delivery_lat + 0.002}&layer=mapnik&marker=${order.delivery_lat},${order.delivery_lng}`}
                 />
                 <a
                   href={`https://www.openstreetmap.org/?mlat=${order.delivery_lat}&mlon=${order.delivery_lng}#map=18/${order.delivery_lat}/${order.delivery_lng}`}
@@ -213,12 +191,10 @@ export default function AdminOrdersPage() {
                     key={action.next}
                     disabled={updating}
                     onClick={() => updateOrderStatus(order.id, action.next)}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg font-semibold transition ${
-                      updating
-                        ? 'bg-gray-700 text-gray-400 cursor-not-allowed'
-                        : 'bg-[#cc9b3b] hover:bg-[#b88b30] text-black'
-                    }`}
-                    aria-label={`Atualizar status para ${action.label}`}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg font-semibold transition ${updating
+                      ? 'bg-gray-700 text-gray-400 cursor-not-allowed'
+                      : 'bg-[#cc9b3b] hover:bg-[#b88b30] text-black'
+                      }`}
                   >
                     <Icon className="w-4 h-4" />
                     {action.label}
@@ -235,82 +211,69 @@ export default function AdminOrdersPage() {
   return (
     <div className="min-h-screen bg-[#18181b] text-white p-6">
       <div className="max-w-6xl mx-auto">
-        <h1 className="text-3xl font-bold mb-8 text-[#cc9b3b]">Administração de Pedidos</h1>
+        <div className="flex items-center gap-2 mb-8">
+          <button
+            onClick={() => window.history.back()}
+            className="text-[#cc9b3b] hover:text-[#b88b30] transition focus:outline-none"
+          >
+            <ArrowLeft className="w-6 h-6" />
+          </button>
+          <h1 className="text-3xl font-bold text-[#cc9b3b]">Administração de Pedidos</h1>
+        </div>
 
         {loading ? (
           <div className="flex flex-col items-center justify-center h-64">
-            <Loader2 className="w-12 h-12 animate-spin text-[#cc9b3b]" />
+            <Hamburger className="w-12 h-12 text-[#cc9b3b]" />
             <span className="mt-4 text-[#cc9b3b]">Carregando pedidos...</span>
           </div>
         ) : (
-          <div className="overflow-x-auto rounded-2xl shadow-lg bg-[#23232b]">
-            <table className="min-w-full text-sm">
-              <thead>
-                <tr className="bg-[#1a1a1a] text-[#cc9b3b]">
-                  <th className="py-3 px-4 text-left">Cliente</th>
-                  <th className="py-3 px-4 text-left">Telefone</th>
-                  <th className="py-3 px-4 text-left">Total</th>
-                  <th className="py-3 px-4 text-left">Status</th>
-                  <th className="py-3 px-4 text-left">Endereço</th>
-                  <th className="py-3 px-4 text-left">Pagamento</th>
-                  <th className="py-3 px-4"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {orders.length === 0 && (
-                  <tr>
-                    <td colSpan={7} className="py-8 text-center text-gray-400">
-                      Nenhum pedido encontrado.
-                    </td>
-                  </tr>
-                )}
-                {orders.map((order) => (
-                  <tr
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {sortedOrders.length === 0 ? (
+              <div className="text-center text-gray-400 col-span-full">Nenhum pedido encontrado.</div>
+            ) : (
+              sortedOrders.map((order) => {
+                const isDelivered = order.status === 'delivered'
+                return (
+                  <div
                     key={order.id}
-                    className="border-b border-[#23232b] hover:bg-[#23232b]/60 transition"
+                    className={`rounded-xl p-4 shadow-md cursor-pointer transition border border-[#2a2a2a] ${isDelivered
+                      ? 'bg-[#1c1c1c] opacity-60 hover:opacity-70'
+                      : 'bg-[#23232b] hover:shadow-lg'
+                      }`}
+                    onClick={() => setSelectedOrder(order)}
                   >
-                    <td className="py-3 px-4">{order.customer_name}</td>
-                    <td className="py-3 px-4">{order.customer_phone}</td>
-                    <td className="py-3 px-4">{formatPrice(order.total_cents)}</td>
-                    <td className="py-3 px-4">
+                    <div className="flex justify-between items-center mb-2">
+                      <h3 className="text-lg font-bold text-[#cc9b3b]">#{order.id.slice(0, 8)}</h3>
                       <span
-                        className={`px-2 py-1 rounded text-xs font-bold ${
-                          order.status === 'pending'
-                            ? 'bg-yellow-700 text-yellow-200'
-                            : order.status === 'accepted'
+                        className={`px-2 py-1 rounded text-xs font-bold ${order.status === 'pending'
+                          ? 'bg-yellow-700 text-yellow-200'
+                          : order.status === 'accepted'
                             ? 'bg-blue-700 text-blue-200'
                             : order.status === 'preparing'
-                            ? 'bg-orange-700 text-orange-200'
-                            : order.status === 'out_for_delivery'
-                            ? 'bg-purple-700 text-purple-200'
-                            : order.status === 'delivered'
-                            ? 'bg-green-700 text-green-200'
-                            : order.status === 'rejected'
-                            ? 'bg-red-700 text-red-200'
-                            : 'bg-gray-700 text-gray-200'
-                        }`}
-                        aria-label={`Status do pedido: ${STATUS_LABELS[order.status]}`}
+                              ? 'bg-orange-700 text-orange-200'
+                              : order.status === 'out_for_delivery'
+                                ? 'bg-purple-700 text-purple-200'
+                                : order.status === 'delivered'
+                                  ? 'bg-green-700 text-green-200'
+                                  : order.status === 'rejected'
+                                    ? 'bg-red-700 text-red-200'
+                                    : 'bg-gray-700 text-gray-200'
+                          }`}
                       >
                         {STATUS_LABELS[order.status]}
                       </span>
-                    </td>
-                    <td className="py-3 px-4">
-                      {order.delivery_address || <span className="italic text-gray-400">-</span>}
-                    </td>
-                    <td className="py-3 px-4">{order.payment_method.toUpperCase()}</td>
-                    <td className="py-3 px-4">
-                      <button
-                        className="text-[#cc9b3b] hover:underline font-semibold focus:outline-none focus:ring-2 focus:ring-[#cc9b3b] rounded"
-                        onClick={() => setSelectedOrder(order)}
-                        aria-label={`Ver detalhes do pedido ${order.id.slice(0, 8)}`}
-                      >
-                        Detalhes
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                    </div>
+                    <div className={`text-sm ${isDelivered ? 'text-gray-400' : 'text-gray-300'} space-y-1`}>
+                      <div><strong>Cliente:</strong> {order.customer_name}</div>
+                      <div><strong>Telefone:</strong> {order.customer_phone}</div>
+                      <div><strong>Endereço:</strong> {order.delivery_address || <span className="italic text-gray-400">Não informado</span>}</div>
+                      <div><strong>Total:</strong> {formatPrice(order.total_cents)}</div>
+                      <div><strong>Pagamento:</strong> {order.payment_method.toUpperCase()}</div>
+                    </div>
+                  </div>
+                )
+              })
+            )}
           </div>
         )}
       </div>

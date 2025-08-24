@@ -41,14 +41,14 @@ export interface Order {
   id: string
   customer_id: string
   status:
-    | 'pending'
-    | 'accepted'
-    | 'preparing'
-    | 'out_for_delivery'
-    | 'delivered'
-    | 'rejected'
-    | 'cancelled'
-  payment_method: 'cash' | 'card' | 'pix'
+    | 'Pendente'
+    | 'Aceito!'
+    | 'Preparando'
+    | 'Saiu para Entrega'
+    | 'Entregue'
+    | 'Rejeitado'
+    | 'Cancelado'
+  payment_method: 'Dinheiro' | 'Cartão' | 'Pix'
   notes: string | null
   total_cents: number
   delivery_lat: number | null

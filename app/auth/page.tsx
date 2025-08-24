@@ -1,8 +1,16 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { Eye, EyeOff, Mail, Lock, User, Phone, Hamburger } from 'lucide-react'
+import {
+  Eye,
+  EyeOff,
+  Mail,
+  Lock,
+  User,
+  Phone,
+  Hamburger
+} from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { GlassCard } from '@/components/ui/glass-card'
@@ -11,11 +19,50 @@ import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 
+// Tipagem do formulário
 interface FormData {
   email: string
   password: string
   fullName: string
   phone: string
+}
+
+// Fundo animado responsivo
+function AnimatedBackground() {
+  const [iconCount, setIconCount] = useState(0)
+
+  useEffect(() => {
+    const calcIcons = () => {
+      const iconSize = 40 // px
+      const cols = Math.ceil(window.innerWidth / iconSize)
+      const rows = Math.ceil(window.innerHeight / iconSize)
+      setIconCount(cols * rows)
+    }
+
+    calcIcons()
+    window.addEventListener('resize', calcIcons)
+    return () => window.removeEventListener('resize', calcIcons)
+  }, [])
+
+  return (
+    <div className="absolute inset-0 w-full h-full opacity-10 pointer-events-none grid grid-cols-[repeat(auto-fill,minmax(2.5rem,1fr))] gap-1 z-0">
+      {Array.from({ length: iconCount }).map((_, i) => (
+        <motion.div
+          key={i}
+          className="flex justify-center items-center w-8 h-8"
+          animate={{ y: [0, -10, 0] }}
+          transition={{
+            duration: 5 + Math.random() * 3,
+            repeat: Infinity,
+            delay: Math.random() * 2,
+            ease: 'easeInOut',
+          }}
+        >
+          <Hamburger className="text-[#cc9b3b] w-10 h-10" />
+        </motion.div>
+      ))}
+    </div>
+  )
 }
 
 export default function AuthPage() {
@@ -78,18 +125,7 @@ export default function AuthPage() {
   return (
     <div className="min-h-screen flex items-center justify-center p-6 bg-[#111111] relative overflow-hidden">
       {/* Fundo animado */}
-      <div className="absolute inset-0 opacity-10 pointer-events-none grid grid-cols-6 gap-6">
-        {Array.from({ length: 36 }).map((_, i) => (
-          <motion.div
-            key={i}
-            className="flex justify-center items-center"
-            animate={{ y: [0, -8, 0], rotate: [0, 10, -10, 0] }}
-            transition={{ duration: 5 + Math.random() * 3, repeat: Infinity, delay: Math.random() * 2 }}
-          >
-            <Hamburger className="text-[#cc9b3b] w-6 h-6" />
-          </motion.div>
-        ))}
-      </div>
+      <AnimatedBackground />
 
       <div className="w-full max-w-md relative z-10">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
