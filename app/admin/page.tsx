@@ -1,13 +1,12 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
 import { Hamburger, ArrowLeft } from 'lucide-react'
 import OrderList from './components/order-list'
 import OrderModal from './components/order-modal'
 
-// Tipos e constantes (pode mover para um arquivo types.ts se quiser)
 type OrderItem = {
   id: string;
   order_id: string;
@@ -54,6 +53,13 @@ export default function AdminOrdersPage() {
   const [selectedOrder, setSelectedOrder] = useState<OrderWithItems | null>(null)
   const [updating, setUpdating] = useState(false)
 
+  const previousOrderIdsRef = useRef<Set<string>>(new Set())
+  const notificationSoundRef = useRef<HTMLAudioElement | null>(null)
+
+  useEffect(() => {
+    notificationSoundRef.current = new Audio('/notify.mp3')
+  }, [])
+
   useEffect(() => {
     let isMounted = true
 
@@ -72,11 +78,22 @@ export default function AdminOrdersPage() {
         toast.error('Erro ao carregar pedidos')
         setOrders([])
       } else {
-        // Ajuste para garantir que items venha corretamente
         const ordersWithItems = (data as any[]).map((order) => ({
           ...order,
           items: order.order_items || [],
         }))
+
+        // Notificação sonora se houver novo pedido
+        const newIds = new Set(ordersWithItems.map((o) => o.id))
+        const oldIds = previousOrderIdsRef.current
+        const isNewOrder = [...newIds].some((id) => !oldIds.has(id))
+        if (isNewOrder && notificationSoundRef.current) {
+          notificationSoundRef.current.play().catch(() => {
+            // pode falhar silenciosamente se o autoplay for bloqueado
+          })
+        }
+
+        previousOrderIdsRef.current = newIds
         setOrders(ordersWithItems)
       }
 
@@ -126,7 +143,6 @@ export default function AdminOrdersPage() {
   return (
     <div className="min-h-screen bg-[#18181b] text-white p-6">
       <div className="max-w-6xl mx-auto">
-        {/* TOPO DA PÁGINA */}
         <div className="flex items-center gap-2 mb-8">
           <button
             onClick={() => window.history.back()}
@@ -137,7 +153,6 @@ export default function AdminOrdersPage() {
           <h1 className="text-3xl font-bold text-[#cc9b3b]">Administração de Pedidos</h1>
         </div>
 
-        {/* LISTA DE PEDIDOS */}
         <OrderList
           loading={loading}
           orders={sortedOrders}
@@ -145,7 +160,6 @@ export default function AdminOrdersPage() {
         />
       </div>
 
-      {/* MODAL DE DETALHES DO PEDIDO */}
       {selectedOrder && (
         <OrderModal
           order={selectedOrder}

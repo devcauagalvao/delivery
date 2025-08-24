@@ -54,10 +54,24 @@ export default function CheckoutForm({
                 )
                 const data = await res.json()
 
-                if (data && data.display_name) {
-                    // Atualiza o campo endereço apenas se não tiver sido editado manualmente
+                if (data && data.address) {
+                    const address = data.address
+                    const road = address.road || ''
+                    const houseNumber = address.house_number || ''
+                    const neighbourhood = address.neighbourhood || address.suburb || address.city_district || ''
+                    const city = address.city || address.town || address.village || ''
+
+                    let formatted = ''
+
+                    if (road) formatted += road
+                    if (houseNumber) formatted += `, ${houseNumber}`
+                    else formatted += ' (adicione o número da casa)'
+                    if (neighbourhood) formatted += ` - ${neighbourhood}`
+                    else if (city) formatted += ` - ${city}`
+
+                    // Só atualiza o campo se ainda não foi editado manualmente
                     if (!addressValue || isAddressAutoFilled) {
-                        form.setValue('address', data.display_name)
+                        form.setValue('address', formatted.trim())
                         setIsAddressAutoFilled(true)
                     }
                 }
@@ -99,8 +113,8 @@ export default function CheckoutForm({
                     type="button"
                     onClick={requestLocation}
                     className={`w-full flex items-center justify-center gap-2 ${location
-                            ? 'border-[#cc9b3b] bg-[#cc9b3b]/10 text-[#cc9b3b]'
-                            : 'border-white/20 text-white hover:border-[#cc9b3b] hover:text-[#cc9b3b] rounded-2xl'
+                        ? 'border-[#cc9b3b] bg-[#cc9b3b]/10 text-[#cc9b3b]'
+                        : 'border-white/20 text-white hover:border-[#cc9b3b] hover:text-[#cc9b3b] rounded-2xl'
                         }`}
                 >
                     <Pin className="w-5 h-5" />
@@ -157,8 +171,8 @@ export default function CheckoutForm({
                 type="submit"
                 disabled={loading || (!location && !form.getValues('address'))}
                 className={`w-full rounded-full py-4 text-lg font-semibold ${!location && !form.getValues('address')
-                        ? 'bg-white/20 text-white/50 cursor-not-allowed'
-                        : 'bg-[#cc9b3b] hover:bg-[#b88b30] text-white'
+                    ? 'bg-white/20 text-white/50 cursor-not-allowed'
+                    : 'bg-[#cc9b3b] hover:bg-[#b88b30] text-white'
                     }`}
             >
                 {loading ? 'Processando...' : 'Confirmar Pedido'}
