@@ -8,6 +8,8 @@ import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
 import styled from 'styled-components'
 import { createClient } from '@supabase/supabase-js'
+import { toast } from 'sonner'
+import { useRef } from 'react'
 
 interface HeaderProps {
   searchQuery: string
@@ -28,10 +30,19 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 )
 
+const statusMap: Record<string, string> = {
+  accepted: 'Aceito',
+  preparing: 'Em preparo',
+  out_for_delivery: 'Saiu para entrega',
+  delivered: 'Entregue',
+  rejected: 'Rejeitado',
+  cancelled: 'Cancelado'
+}
+
 async function fetchOrderNotifications() {
   const { data, error } = await supabase
     .from('orders')
-    .select('id, customer_name, status')
+    .select('id, status, order_items(id, product:products(name), quantity)')
     .in('status', ['accepted', 'preparing', 'out_for_delivery', 'delivered'])
 
   if (error) {
@@ -41,8 +52,10 @@ async function fetchOrderNotifications() {
 
   return data.map((order: any) => ({
     id: order.id,
-    message: `Pedido de ${order.customer_name} está ${order.status.replace('_', ' ')}`,
-    status: order.status
+    message: `Pedido #${order.id.slice(0, 8)} - Itens: ${order.order_items
+      .map((i: any) => `${i.product?.name || 'Produto desconhecido'} x${i.quantity}`)
+      .join(', ')}`,
+    status: statusMap[order.status] || order.status
   })) as Notification[]
 }
 
@@ -116,15 +129,55 @@ export default function Header({
   useEffect(() => {
     if (!user) return
 
+    let previousOrders: Record<string, string> = {} // guarda status anterior dos pedidos
+
     const updateNotifications = async () => {
       const notifs = await fetchOrderNotifications()
       setNotifications(notifs)
+
+      // Verifica se algum pedido do usuário passou de pendente para aceito
+      notifs.forEach((notif) => {
+        // Só considera pedidos do usuário logado
+        // Se você tiver o user id nos pedidos, substitua order.id pelo user_id
+        const prevStatus = previousOrders[notif.id]
+        if (prevStatus === 'pending' && notif.status === 'Aceito') {
+          toast.success(`Seu pedido #${notif.id.slice(0, 8)} foi aceito!`)
+        }
+        previousOrders[notif.id] = notif.status
+      })
     }
 
     updateNotifications()
 
     const interval = setInterval(updateNotifications, 10000) // a cada 10s
-    return () => clearInterval(interval)
+
+    // Realtime para atualizações instantâneas
+    const channel = supabase
+      .channel('orders_notifications')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'orders' },
+        async (payload) => {
+          if (!payload.new) return
+          const notifs = await fetchOrderNotifications()
+          setNotifications(notifs)
+
+          // Toast instantâneo
+          notifs.forEach((notif) => {
+            const prevStatus = previousOrders[notif.id]
+            if (prevStatus === 'pending' && notif.status === 'Aceito') {
+              toast.success(`Seu pedido #${notif.id.slice(0, 8)} foi aceito!`)
+            }
+            previousOrders[notif.id] = notif.status
+          })
+        }
+      )
+      .subscribe()
+
+    return () => {
+      clearInterval(interval)
+      supabase.removeChannel(channel)
+    }
   }, [user])
 
   const buttonStyles =
