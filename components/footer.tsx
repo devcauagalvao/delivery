@@ -17,10 +17,9 @@ export default function Footer() {
                     href="https://www.glvinformatica.com.br"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="hover:underline flex items-center gap-1"
+                    className="hover:underline decoration-red-500 underline-offset-2"
                 >
                     GLV Informática e Desenvolvimento
-                    <span className="text-xs text-red-400 line-through">link</span>
                 </Link>
                 . Todos os direitos reservados.
             </p>
