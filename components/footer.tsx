@@ -17,7 +17,7 @@ export default function Footer() {
                     href="https://www.glvinformatica.com.br"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="hover:underline decoration-red-500 underline-offset-2"
+                    className="underline decoration-white underline-offset-2"
                 >
                     GLV Informática e Desenvolvimento
                 </Link>
