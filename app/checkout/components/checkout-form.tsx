@@ -26,6 +26,16 @@ type Props = {
     requestLocation: () => void
 }
 
+function formatPhoneInput(value: string) {
+    const digits = value.replace(/\D/g, '')
+
+    if (digits.length <= 2) return `(${digits}`
+    if (digits.length <= 6) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`
+    if (digits.length <= 10)
+        return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`
+    return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7, 11)}`
+}
+
 export default function CheckoutForm({
     defaultValues,
     onSubmit,
@@ -41,6 +51,7 @@ export default function CheckoutForm({
 
     const paymentMethod = form.watch('paymentMethod')
     const addressValue = form.watch('address')
+    const phoneValue = form.watch('phone')
 
     const [isAddressAutoFilled, setIsAddressAutoFilled] = useState(false)
 
@@ -58,7 +69,8 @@ export default function CheckoutForm({
                     const address = data.address
                     const road = address.road || ''
                     const houseNumber = address.house_number || ''
-                    const neighbourhood = address.neighbourhood || address.suburb || address.city_district || ''
+                    const neighbourhood =
+                        address.neighbourhood || address.suburb || address.city_district || ''
                     const city = address.city || address.town || address.village || ''
 
                     let formatted = ''
@@ -69,25 +81,29 @@ export default function CheckoutForm({
                     if (neighbourhood) formatted += ` - ${neighbourhood}`
                     else if (city) formatted += ` - ${city}`
 
-                    // Só atualiza o campo se ainda não foi editado manualmente
                     if (!addressValue || isAddressAutoFilled) {
                         form.setValue('address', formatted.trim())
                         setIsAddressAutoFilled(true)
                     }
                 }
             } catch {
-                // falha silenciosa
             }
         }
 
         fetchAddress()
     }, [location])
 
-    // Detecta se o usuário digitou manualmente no campo endereço
     useEffect(() => {
-        if (addressValue && !isAddressAutoFilled) return // já foi alterado manualmente
+        if (addressValue && !isAddressAutoFilled) return
         if (!addressValue && isAddressAutoFilled) setIsAddressAutoFilled(false)
     }, [addressValue])
+
+    useEffect(() => {
+        if (phoneValue) {
+            const formatted = formatPhoneInput(phoneValue)
+            form.setValue('phone', formatted)
+        }
+    }, [phoneValue])
 
     return (
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
@@ -120,7 +136,9 @@ export default function CheckoutForm({
                     <Pin className="w-5 h-5" />
                     {location ? 'Localização Capturada ✓' : 'Usar Minha Localização Atual'}
                 </Button>
-                {locationError && <p className="text-[#cc9b3b] text-sm">{locationError}</p>}
+                {locationError && (
+                    <p className="text-[#cc9b3b] text-sm">{locationError}</p>
+                )}
             </div>
 
             {/* Pagamento */}
@@ -128,17 +146,31 @@ export default function CheckoutForm({
                 <h3 className="text-lg font-semibold">Forma de Pagamento</h3>
                 <div className="grid grid-cols-1 gap-3">
                     {['cash', 'card', 'pix'].map((method) => {
-                        const Icon = method === 'cash' ? Banknote : method === 'card' ? CreditCard : Smartphone
+                        const Icon =
+                            method === 'cash' ? Banknote : method === 'card' ? CreditCard : Smartphone
                         const label = method === 'cash' ? 'Dinheiro' : method === 'card' ? 'Cartão' : 'PIX'
                         return (
                             <label
                                 key={method}
-                                className={`flex items-center gap-3 p-4 rounded-2xl cursor-pointer border-2 transition-all ${paymentMethod === method ? 'border-[#cc9b3b] bg-[#cc9b3b]/10' : 'border-white/20 bg-[#111]'
+                                className={`flex items-center gap-3 p-4 rounded-2xl cursor-pointer border-2 transition-all ${paymentMethod === method
+                                    ? 'border-[#cc9b3b] bg-[#cc9b3b]/10'
+                                    : 'border-white/20 bg-[#111]'
                                     }`}
                             >
-                                <input type="radio" value={method} {...form.register('paymentMethod')} className="sr-only" />
-                                <Icon className={`w-6 h-6 ${paymentMethod === method ? 'text-[#cc9b3b]' : 'text-white'}`} />
-                                <div className={`${paymentMethod === method ? 'text-[#cc9b3b]' : 'text-white'} font-medium`}>
+                                <input
+                                    type="radio"
+                                    value={method}
+                                    {...form.register('paymentMethod')}
+                                    className="sr-only"
+                                />
+                                <Icon
+                                    className={`w-6 h-6 ${paymentMethod === method ? 'text-[#cc9b3b]' : 'text-white'
+                                        }`}
+                                />
+                                <div
+                                    className={`${paymentMethod === method ? 'text-[#cc9b3b]' : 'text-white'
+                                        } font-medium`}
+                                >
                                     {label}
                                 </div>
                             </label>
@@ -177,6 +209,7 @@ export default function CheckoutForm({
             >
                 {loading ? 'Processando...' : 'Confirmar Pedido'}
             </Button>
+
             {!location && !form.getValues('address') && (
                 <p className="text-[#cc9b3b] text-center text-sm mt-2">
                     É obrigatório capturar sua localização ou informar endereço para finalizar o pedido.

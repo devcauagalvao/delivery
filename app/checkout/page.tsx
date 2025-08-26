@@ -12,8 +12,7 @@ import { Button } from '@/components/ui/button'
 import { GlassCard } from '@/components/ui/glass-card'
 import OrderSummary from './components/order-summary'
 import CheckoutForm, { CheckoutData } from './components/checkout-form'
-import { formatPrice } from './types'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, ShoppingCart } from 'lucide-react'
 
 export default function CheckoutPage() {
   const [loading, setLoading] = useState(false)
@@ -96,9 +95,7 @@ export default function CheckoutPage() {
         subtotal_cents: item.product.price_cents * item.quantity,
       }))
 
-      const { error: itemsError } = await supabase
-        .from('order_items')
-        .insert(orderItems)
+      const { error: itemsError } = await supabase.from('order_items').insert(orderItems)
 
       if (itemsError) throw itemsError
 
@@ -115,54 +112,62 @@ export default function CheckoutPage() {
 
   if (state.items.length === 0) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-6 bg-[#1a1a1a]">
-        <GlassCard className="p-8 text-center bg-[#1a1a1a] border border-white/20">
-          <p className="text-white text-lg mb-4">Carrinho vazio</p>
-          <Link href="/">
-            <Button className="bg-[#e11d48] text-white hover:bg-[#be123c]">Voltar ao cardápio</Button>
-          </Link>
-        </GlassCard>
+      <div className="min-h-screen flex flex-col items-center justify-center bg-[#1a1a1a] text-white p-6">
+        <ShoppingCart size={64} className="mb-4" />
+        <p className="text-xl mb-6">Carrinho vazio</p>
+        <Link href="/">
+          <Button className="bg-white text-black hover:bg-gray-200">Voltar ao cardápio</Button>
+        </Link>
       </div>
     )
   }
 
   return (
     <div className="min-h-screen p-6 bg-[#1a1a1a]">
-      <div className="max-w-2xl mx-auto space-y-6">
+      <div className="max-w-6xl mx-auto space-y-6">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
           {/* Header */}
-          <div className="flex items-center gap-4 mb-8">
+          <div className="flex items-center gap-2 mb-8">
             <Link href="/">
               <Button variant="default" size="sm">
-                <ArrowLeft className="w-5 h-5" />
+                <ArrowLeft className="w-8 h-8 text-[#cc9b3b]" strokeWidth={4} />
               </Button>
             </Link>
             <div>
-              <h1 className="text-3xl font-bold text-white">Finalizar Pedido</h1>
-              <p className="text-white/70">Complete os dados para entrega</p>
+              <h1 className="text-3xl font-bold text-[#cc9b3b]">Finalizar Pedido</h1>
+              <p className="text-[#cc9b3b]">Complete os dados para entrega</p>
             </div>
           </div>
 
-          {/* Resumo do pedido */}
-          <GlassCard className="p-6 bg-[#1a1a1a]/50 border border-white/20 text-white">
-            <OrderSummary items={state.items} formatPrice={formatPrice} totalCents={totalCents} />
-          </GlassCard>
+          {/* Conteúdo lado a lado */}
+          <div className="flex flex-col lg:flex-row gap-6">
+            {/* Esquerda: Resumo do pedido */}
+            <div className="lg:w-1/2">
+              <GlassCard className="p-6 bg-[#1a1a1a]/50 border border-white/20 text-white">
+                <h2 className="text-xl font-semibold mb-4 text-[#cc9b3b]">Produtos do Pedido</h2>
+                <OrderSummary items={state.items} formatPrice={formatPrice} totalCents={totalCents} />
+              </GlassCard>
+            </div>
 
-          {/* Formulário */}
-          <GlassCard className="p-6 bg-[#1a1a1a]/50 border border-white/20 text-white">
-            <CheckoutForm
-              defaultValues={{
-                fullName: profile?.full_name || '',
-                phone: profile?.phone || '',
-                paymentMethod: 'cash',
-              }}
-              onSubmit={onSubmit}
-              loading={loading}
-              location={location}
-              locationError={locationError}
-              requestLocation={requestLocation}
-            />
-          </GlassCard>
+            {/* Direita: Formulário */}
+            <div className="lg:w-1/2">
+              <GlassCard className="p-6 bg-[#1a1a1a]/50 border border-white/20 text-white">
+                <h2 className="text-xl font-semibold mb-4 text-[#cc9b3b]">Informações para Entrega</h2>
+                <CheckoutForm
+                  defaultValues={{
+                    fullName: profile?.full_name || '',
+                    phone: profile?.phone || '',
+                    paymentMethod: 'cash',
+                  }}
+                  onSubmit={onSubmit}
+                  loading={loading}
+                  location={location}
+                  locationError={locationError}
+                  requestLocation={requestLocation}
+                />
+              </GlassCard>
+            </div>
+          </div>
         </motion.div>
       </div>
     </div>
