@@ -1,6 +1,6 @@
 'use client'
 
-import { Product } from '@/lib/menu'
+import { SupabaseProduct } from "@/lib/supabase"
 import { X, Plus, CheckCircle } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Image from 'next/image'
@@ -9,27 +9,22 @@ import { toast } from 'sonner'
 import { Button } from './ui/button'
 
 interface ProductModalProps {
-  product: Product | null
+  product: SupabaseProduct | null
   onClose: () => void
+  onUpdate?: (updatedProduct: SupabaseProduct) => void
 }
 
-export function ProductModal({ product, onClose }: ProductModalProps) {
+export function ProductModal({ product, onClose, onUpdate }: ProductModalProps) {
   const { addItem, state: cartState } = useCart()
   if (!product) return null
 
-  const handleAddToCart = () => {
-    const productToAdd = {
-      id: product.id,
-      name: product.name,
-      description: product.description,
-      price_cents: product.price * 100,
-      image_url: product.image,
-      active: product.active ?? true,
-      created_at: product.created_at ?? new Date().toISOString(),
-      updated_at: product.updated_at ?? new Date().toISOString(),
-    }
+  const formatPrice = (price_cents: number) => {
+    const price = price_cents / 100
+    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(price)
+  }
 
-    addItem(productToAdd)
+  const handleAddToCart = () => {
+    addItem(product)
     toast(`${product.name} adicionado ao carrinho!`, {
       description: 'Você pode finalizar a compra no carrinho.',
       duration: 3000,
@@ -54,7 +49,6 @@ export function ProductModal({ product, onClose }: ProductModalProps) {
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.95, opacity: 0 }}
         >
-          {/* Botão de fechar */}
           <button
             onClick={onClose}
             className="absolute top-4 right-4 text-gray-300 hover:text-white z-10 bg-black rounded-full p-2 transition-colors duration-200"
@@ -62,11 +56,10 @@ export function ProductModal({ product, onClose }: ProductModalProps) {
             <X className="w-5 h-5" strokeWidth={4} />
           </button>
 
-          {/* Imagem */}
           <div className="w-full md:w-1/2 bg-black flex items-center justify-center p-4">
             <div className="relative w-full h-72 md:h-[400px]">
               <Image
-                src={product.image}
+                src={product.image_url || '/placeholder.png'}
                 alt={product.name}
                 fill
                 className="object-contain"
@@ -75,7 +68,6 @@ export function ProductModal({ product, onClose }: ProductModalProps) {
             </div>
           </div>
 
-          {/* Conteúdo */}
           <div className="flex flex-col justify-between p-6 md:w-1/2 text-gray-200">
             <div>
               <h2 className="text-2xl font-bold mb-2">{product.name}</h2>
@@ -85,7 +77,7 @@ export function ProductModal({ product, onClose }: ProductModalProps) {
                 <div className="mt-4">
                   <h3 className="text-lg font-semibold mb-2">Ingredientes</h3>
                   <ul className="list-disc list-inside text-sm text-gray-300">
-                    {product.ingredients.map((ingredient, index) => (
+                    {product.ingredients.map((ingredient: string, index: number) => (
                       <li key={index}>{ingredient}</li>
                     ))}
                   </ul>
@@ -93,20 +85,16 @@ export function ProductModal({ product, onClose }: ProductModalProps) {
               )}
             </div>
 
-            {/* Rodapé com preço e botão adicionar */}
             <div className="mt-4 flex items-center justify-between pt-4 border-t border-white/10">
-              <p className="text-[#cc9b3b] font-bold text-lg">
-                R$ {product.price.toFixed(2)}
-              </p>
+              <p className="text-[#cc9b3b] font-bold text-lg">{formatPrice(product.price_cents)}</p>
 
               <Button
                 onClick={handleAddToCart}
                 size="sm"
-                className={`flex items-center gap-2 rounded-full px-4 py-2 transition-all ${
-                  alreadyInCart
+                className={`flex items-center gap-2 rounded-full px-4 py-2 transition-all ${alreadyInCart
                     ? 'bg-green-600 hover:bg-green-700 text-white'
                     : 'bg-red-500 hover:bg-red-600 text-gray-100'
-                }`}
+                  }`}
               >
                 <Plus className="w-5 h-5" strokeWidth={4} />
                 {alreadyInCart ? 'Adicionado' : 'Adicionar'}

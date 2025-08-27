@@ -1,6 +1,5 @@
 'use client'
 
-import type { Product as MenuProduct } from "@/lib/menu"
 import type { Product as SupabaseProduct } from "@/lib/supabase"
 import { Button } from './ui/button'
 import { Plus, ShoppingBag, CheckCircle } from 'lucide-react'
@@ -10,24 +9,14 @@ import { toast } from 'sonner'
 import Image from 'next/image'
 
 interface ProductCardProps {
-  product: MenuProduct
+  product: SupabaseProduct
 }
-
-const mapMenuToSupabaseProduct = (product: MenuProduct): SupabaseProduct => ({
-  id: product.id,
-  name: product.name,
-  description: product.description,
-  price_cents: product.price * 100, // converte para centavos
-  image_url: product.image,
-  active: product.active ?? true,
-  created_at: product.created_at ?? new Date().toISOString(),
-  updated_at: product.updated_at ?? new Date().toISOString(),
-})
 
 export function ProductCard({ product }: ProductCardProps) {
   const { addItem, state: cartState } = useCart()
 
-  const formatPrice = (price: number) => {
+  const formatPrice = (price_cents: number) => {
+    const price = price_cents / 100
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
       currency: 'BRL'
@@ -35,8 +24,7 @@ export function ProductCard({ product }: ProductCardProps) {
   }
 
   const handleAddToCart = () => {
-    const supabaseProduct = mapMenuToSupabaseProduct(product)
-    addItem(supabaseProduct)
+    addItem(product)
 
     toast(`${product.name} adicionado ao carrinho!`, {
       description: 'Você pode finalizar a compra no carrinho.',
@@ -55,9 +43,9 @@ export function ProductCard({ product }: ProductCardProps) {
     >
       {/* Imagem */}
       <div className="relative w-full h-52 sm:h-60 md:h-64 lg:h-56 xl:h-60">
-        {product.image ? (
+        {product.image_url ? (
           <Image
-            src={product.image}
+            src={product.image_url}
             alt={product.name}
             fill
             className="object-cover"
@@ -83,7 +71,7 @@ export function ProductCard({ product }: ProductCardProps) {
         {/* Preço + botão */}
         <div className="flex items-center justify-between mt-auto">
           <span className="text-xl sm:text-2xl font-bold text-gray-200">
-            {formatPrice(product.price)}
+            {formatPrice(product.price_cents)}
           </span>
 
           <Button
@@ -92,11 +80,10 @@ export function ProductCard({ product }: ProductCardProps) {
               handleAddToCart()
             }}
             size="sm"
-            className={`rounded-full p-3 shadow-md transition-all ${
-              alreadyInCart
+            className={`rounded-full p-3 shadow-md transition-all ${alreadyInCart
                 ? 'bg-green-600 hover:bg-green-700 text-white'
                 : 'bg-red-500 hover:bg-red-600 text-gray-100'
-            }`}
+              }`}
           >
             <Plus className="w-5 h-5" strokeWidth={4} />
           </Button>

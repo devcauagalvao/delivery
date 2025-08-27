@@ -34,19 +34,27 @@ export interface Product {
   image_url: string | null
   active: boolean
   created_at: string
+  updated_at?: string
+  ingredients?: string[]
+  categories?: string[]
+}
+
+export interface SupabaseProduct extends Product {
+  ingredients?: string[]
+  categories?: string[]
 }
 
 export interface Order {
   id: string
   customer_id: string
   status:
-    | 'Pendente'
-    | 'Aceito!'
-    | 'Preparando'
-    | 'Saiu para Entrega'
-    | 'Entregue'
-    | 'Rejeitado'
-    | 'Cancelado'
+  | 'Pendente'
+  | 'Aceito!'
+  | 'Preparando'
+  | 'Saiu para Entrega'
+  | 'Entregue'
+  | 'Rejeitado'
+  | 'Cancelado'
   payment_method: 'Dinheiro' | 'Cartão' | 'Pix'
   notes: string | null
   total_cents: number
@@ -77,7 +85,6 @@ export type OrderWithItems = Order & {
 // ==========================
 // Função para criar admin
 // ==========================
-// ⚠️ Esta função deve rodar **somente no servidor** com service_role_key
 export async function createAdmin() {
   if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
     console.error('Service Role Key não definida no .env')
@@ -93,21 +100,14 @@ export async function createAdmin() {
     const { data, error } = await supabaseAdmin.auth.admin.createUser({
       email: 'glvinformatica2024@gmail.com',
       password: '1ao8',
-      email_confirm: true
+      email_confirm: true,
     })
-
     if (error) throw error
-
     console.log('Usuário criado com sucesso, ID:', data.user.id)
 
     const { error: profileError } = await supabaseAdmin
       .from('profiles')
-      .insert({
-        id: data.user.id,
-        full_name: 'Administrador GLV',
-        role: 'admin'
-      })
-
+      .insert({ id: data.user.id, full_name: 'Administrador GLV', role: 'admin' })
     if (profileError) throw profileError
 
     console.log('Profile admin criado com sucesso!')

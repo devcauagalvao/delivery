@@ -7,10 +7,11 @@ import { CartDrawer } from '@/components/cart-drawer'
 import { CartFab } from '@/components/cart-fab'
 import { ProductModal } from '@/components/product-modal'
 import Footer from '@/components/footer'
-import { menu, Product } from '@/lib/menu'
 import { useAuth } from '@/lib/auth'
 import Header from '@/components/header'
 import { Hamburger } from 'lucide-react'
+import { supabase, Product } from '@/lib/supabase'
+import { toast } from 'sonner'
 
 export default function HomePage() {
   const [products, setProducts] = useState<Product[]>([])
@@ -25,10 +26,42 @@ export default function HomePage() {
   const handleCardClick = (product: Product) => setSelectedProduct(product)
   const handleModalClose = () => setSelectedProduct(null)
 
-  useEffect(() => {
-    setProducts(menu)
+  const fetchProducts = async () => {
+    setLoading(true)
+    const { data, error } = await supabase
+      .from('products')
+      .select('*')
+      .order('created_at', { ascending: false })
+
+    if (error) {
+      toast.error('Erro ao carregar produtos')
+      setLoading(false)
+      return
+    }
+
+    setProducts(
+      (data as Product[])
+        .filter(p => p.active) // filtra apenas produtos ativos
+        .map(p => ({
+          ...p,
+          original_price_cents: p.original_price_cents ?? p.price_cents,
+          updated_at: p.updated_at ?? p.created_at,
+          ingredients: p.ingredients ?? [],
+          categories: p.categories ?? [],
+        }))
+    )
     setLoading(false)
+  }
+
+  useEffect(() => {
+    fetchProducts()
   }, [])
+
+  const handleProductUpdate = (updatedProduct: Product) => {
+    setProducts(prev =>
+      prev.map(p => (p.id === updatedProduct.id ? updatedProduct : p))
+    )
+  }
 
   const filteredProducts = products.filter(product => {
     const matchesSearch =
@@ -51,7 +84,6 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-black text-gray-300">
-      {/* Header com busca */}
       <Header
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
@@ -60,7 +92,6 @@ export default function HomePage() {
         signOut={signOut}
       />
 
-      {/* Filtro de categorias */}
       <div className="w-full px-4 sm:px-6 lg:px-8 mt-6 flex justify-between items-center">
         <span className="text-sm text-gray-400">
           {filteredProducts.length} produto{filteredProducts.length !== 1 && 's'} encontrado{filteredProducts.length !== 1 && 's'}
@@ -85,7 +116,6 @@ export default function HomePage() {
         </select>
       </div>
 
-      {/* Lista de produtos */}
       <main className="w-full px-4 sm:px-6 lg:px-8 py-6">
         {filteredProducts.length > 0 ? (
           <motion.div
@@ -117,14 +147,15 @@ export default function HomePage() {
         )}
       </main>
 
-      {/* Modal de produto */}
-      <ProductModal product={selectedProduct} onClose={handleModalClose} />
+      <ProductModal
+        product={selectedProduct}
+        onClose={handleModalClose}
+        onUpdate={handleProductUpdate}
+      />
 
-      {/* FAB + Drawer do carrinho */}
       <CartFab onClick={() => setCartOpen(true)} />
       <CartDrawer isOpen={cartOpen} onClose={() => setCartOpen(false)} />
 
-      {/* Footer */}
       <Footer />
     </div>
   )
