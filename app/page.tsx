@@ -64,12 +64,14 @@ export default function HomePage() {
   }
 
   const filteredProducts = products.filter(product => {
-    const matchesSearch =
-      product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (product.description?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false)
-    const matchesFilter = filter === 'all' || product.categories?.includes(filter)
-    return matchesSearch && matchesFilter
-  })
+  const matchesActive = product.active === true
+  const matchesSearch =
+    product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (product.description?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false)
+  const matchesFilter = filter === 'all' || product.categories?.includes(filter)
+
+  return matchesActive && matchesSearch && matchesFilter
+})
 
   if (loading) {
     return (

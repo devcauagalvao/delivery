@@ -69,6 +69,7 @@ export default function AuthPage() {
   const [isSignUp, setIsSignUp] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [rememberMe, setRememberMe] = useState(false)
   const router = useRouter()
 
   const [formData, setFormData] = useState<FormData>({
@@ -84,14 +85,12 @@ export default function AuthPage() {
 
     try {
       if (isSignUp) {
-        // Criar usuário
         const { data, error } = await supabase.auth.signUp({
           email: formData.email,
           password: formData.password,
         })
         if (error) throw error
 
-        // Inserir perfil
         if (data.user) {
           const { error: profileError } = await supabase
             .from('profiles')
@@ -106,10 +105,16 @@ export default function AuthPage() {
           router.push('/')
         }
       } else {
-        // Login
+        // Set session persistence based on rememberMe
+        // Supabase JS v2: persistence is set via options in signInWithPassword
         const { error } = await supabase.auth.signInWithPassword({
           email: formData.email,
           password: formData.password,
+          options: {
+            // 'local' = lembrar, 'session' = não lembrar
+            // @ts-ignore
+            persistSession: rememberMe
+          }
         })
         if (error) throw error
         toast.success('Login realizado com sucesso!')
@@ -197,6 +202,22 @@ export default function AuthPage() {
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </Button>
               </div>
+
+              {/* Lembrar de mim */}
+              {!isSignUp && (
+                <div className="flex items-center gap-2">
+                  <input
+                    id="rememberMe"
+                    type="checkbox"
+                    checked={rememberMe}
+                    onChange={e => setRememberMe(e.target.checked)}
+                    className="accent-[#cc9b3b] w-4 h-4 rounded focus:ring-2 focus:ring-[#cc9b3b]/50 border border-[#333] bg-[#1a1a1a]/20"
+                  />
+                  <label htmlFor="rememberMe" className="text-white text-sm select-none cursor-pointer">
+                    Lembrar de mim
+                  </label>
+                </div>
+              )}
 
               <Button
                 type="submit"
