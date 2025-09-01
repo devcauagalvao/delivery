@@ -257,9 +257,9 @@ export default function Header({
 
             {user ? (
               <div className="flex items-center gap-4">
-                <span className="text-gray-400 hidden sm:inline">
+                <Link href="/profile" className="text-gray-400 hidden sm:inline hover:text-[#cc9b3b] transition-colors">
                   Olá, {profile?.full_name}
-                </span>
+                </Link>
 
                 {profile?.role === 'admin' && (
                   <Link href="https://delivery-admin-fawn.vercel.app">
@@ -332,7 +332,10 @@ export default function Header({
 
             {user ? (
               <>
-                <span className="text-gray-400">Olá, {profile?.full_name}</span>
+                <Link href="/profile" className="text-gray-400 hover:text-[#cc9b3b] transition-colors">
+                  Olá, {profile?.full_name}
+                </Link>
+
                 {profile?.role === 'admin' && (
                   <Link href="/admin">
                     <button className={`${buttonStyles} w-full bg-[#222222]/70 text-[#cc9b3b] border border-[#cc9b3b]`}>

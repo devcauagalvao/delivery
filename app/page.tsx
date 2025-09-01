@@ -41,7 +41,7 @@ export default function HomePage() {
 
     setProducts(
       (data as Product[])
-        .filter(p => p.active) // filtra apenas produtos ativos
+        .filter(p => p.active)
         .map(p => ({
           ...p,
           original_price_cents: p.original_price_cents ?? p.price_cents,
