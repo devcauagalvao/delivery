@@ -11,6 +11,7 @@ const checkoutSchema = z.object({
     fullName: z.string().min(2, 'Nome deve ter pelo menos 2 caracteres'),
     phone: z.string().min(10, 'Telefone deve ter pelo menos 10 dígitos'),
     address: z.string().optional(),
+    deliveryNotes: z.string().optional(), // novo campo para observações de entrega
     paymentMethod: z.enum(['cash', 'card', 'pix']),
     changeFor: z.string().optional(),
     notes: z.string().optional(),
@@ -124,6 +125,12 @@ export default function CheckoutForm({
                     {...form.register('address')}
                     placeholder="Endereço (opcional)"
                     className="bg-[#111] border border-white/20 text-white rounded-2xl"
+                />
+                <Textarea
+                    {...form.register('deliveryNotes')}
+                    placeholder="Bloco, apartamento, ponto de referência... (opcional)"
+                    className="bg-[#111] border border-white/20 text-white rounded-2xl placeholder:text-white/50 resize-none"
+                    rows={2}
                 />
                 <Button
                     type="button"

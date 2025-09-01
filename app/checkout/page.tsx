@@ -64,6 +64,7 @@ export default function CheckoutPage() {
         payment_method: data.paymentMethod,
         total_cents: totalCents,
         notes: data.notes || null,
+        delivery_notes: data.deliveryNotes || null,
         delivery_lat: location?.lat || null,
         delivery_lng: location?.lng || null,
         customer_name: data.fullName,
@@ -112,12 +113,9 @@ export default function CheckoutPage() {
 
   if (state.items.length === 0) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-[#1a1a1a] text-white p-6">
+      <div className="min-h-screen flex flex-col items-center justify-center bg-[#1a1a1a] text-[#cc9b3b] p-6">
         <ShoppingCart size={64} className="mb-4" />
         <p className="text-xl mb-6">Carrinho vazio</p>
-        <Link href="/">
-          <Button className="bg-white text-black hover:bg-gray-200">Voltar ao cardápio</Button>
-        </Link>
       </div>
     )
   }
@@ -157,6 +155,7 @@ export default function CheckoutPage() {
                   defaultValues={{
                     fullName: profile?.full_name || '',
                     phone: profile?.phone || '',
+                    address: profile?.address || '',
                     paymentMethod: 'cash',
                   }}
                   onSubmit={onSubmit}
