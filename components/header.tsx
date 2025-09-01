@@ -257,7 +257,7 @@ export default function Header({
 
             {user ? (
               <div className="flex items-center gap-4">
-                <Link href="/profile" className="text-gray-400 hidden sm:inline hover:text-[#cc9b3b] transition-colors">
+                <Link href="/profile" className="text-gray-400 hidden sm:inline hover:text-[#cc9b3b] transition-colors underline">
                   Olá, {profile?.full_name}
                 </Link>
 
@@ -332,7 +332,7 @@ export default function Header({
 
             {user ? (
               <>
-                <Link href="/profile" className="text-gray-400 hover:text-[#cc9b3b] transition-colors">
+                <Link href="/profile" className="text-gray-400 hover:text-[#cc9b3b] transition-colors underline">
                   Olá, {profile?.full_name}
                 </Link>
 
