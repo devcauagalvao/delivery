@@ -1,7 +1,9 @@
 'use client';
 
 import * as React from 'react';
-import type { ToastActionElement, ToastProps } from '@/components/ui/toast';
+// Local lightweight types to avoid tight coupling with UI implementation
+type ToastActionElement = React.ReactNode;
+type ToastProps = Record<string, any>;
 
 const TOAST_LIMIT = 1;
 const TOAST_REMOVE_DELAY = 5000;
@@ -108,7 +110,7 @@ function toast(props: Toast) {
 
   dispatch({
     type: actionTypes.ADD_TOAST,
-    toast: { ...props, id, open: true, onOpenChange: (open) => !open && dismiss() },
+    toast: { ...props, id, open: true, onOpenChange: (open: boolean) => !open && dismiss() },
   });
 
   return { id, update, dismiss };

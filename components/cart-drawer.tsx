@@ -17,7 +17,6 @@ interface CartDrawerProps {
 
 export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
   const { state, updateQuantity, removeItem, totalCents } = useCart()
-  const { user } = useAuth()
   const router = useRouter()
 
   const formatPrice = (cents: number) =>
@@ -28,11 +27,7 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
 
   const handleCheckout = () => {
     onClose()
-    if (!user) {
-      router.push('/auth') // redireciona para login se não estiver autenticado
-    } else {
-      router.push('/checkout') // vai para checkout se estiver logado
-    }
+    router.push('/checkout')
   }
 
   return (
@@ -83,7 +78,7 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                   <div className="flex-1 space-y-4 overflow-auto">
                     {state.items.map((item) => (
                       <motion.div
-                        key={item.product.id}
+                        key={`${item.product_id}::${JSON.stringify(item.selectedOptions||[])}`}
                         layout
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
@@ -91,31 +86,23 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                         className="bg-white/5 rounded-2xl p-4"
                       >
                         <div className="flex gap-3">
-                          {/* Imagem do Produto */}
-                          <div className="w-16 h-16 rounded-xl overflow-hidden bg-white/5">
-                            {item.product.image_url ? (
-                              <Image
-                                src={item.product.image_url}
-                                alt={item.product.name}
-                                width={64}
-                                height={64}
-                                className="w-full h-full object-cover"
-                              />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center">
-                                <ShoppingCart className="w-6 h-6 text-white/30" />
-                              </div>
-                            )}
+                          {/* Imagem do Produto (not persisted in snapshot) */}
+                          <div className="w-16 h-16 rounded-xl overflow-hidden bg-white/5 flex items-center justify-center">
+                            <ShoppingCart className="w-6 h-6 text-white/30" />
                           </div>
 
                           {/* Detalhes do Produto */}
                           <div className="flex-1 min-w-0">
                             <h3 className="text-white font-medium truncate">
-                              {item.product.name}
+                              {item.product_name}
                             </h3>
                             <p className="text-white/70 text-sm">
-                              {formatPrice(item.product.price_cents)}
+                              {formatPrice(item.unit_price_cents)}
                             </p>
+
+                            {item.selectedOptions && item.selectedOptions.length > 0 && (
+                              <div className="text-xs text-gray-400 mt-1">Adicionais: {item.selectedOptions.map(o=>o.option_name).join(', ')}</div>
+                            )}
 
                             <div className="flex items-center justify-between mt-2">
                               {/* Quantidade */}
@@ -125,8 +112,9 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                                   size="sm"
                                   onClick={() =>
                                     updateQuantity(
-                                      item.product.id,
-                                      item.quantity - 1
+                                      item.product_id,
+                                      item.quantity - 1,
+                                      `${item.product_id}::${JSON.stringify(item.selectedOptions||[])}`
                                     )
                                   }
                                   className="w-8 h-8 p-0 text-white/70 hover:text-white"
@@ -143,8 +131,9 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                                   size="sm"
                                   onClick={() =>
                                     updateQuantity(
-                                      item.product.id,
-                                      item.quantity + 1
+                                      item.product_id,
+                                      item.quantity + 1,
+                                      `${item.product_id}::${JSON.stringify(item.selectedOptions||[])}`
                                     )
                                   }
                                   className="w-8 h-8 p-0 text-white/70 hover:text-white"
@@ -157,7 +146,7 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                               <Button
                                 variant="default"
                                 size="sm"
-                                onClick={() => removeItem(item.product.id)}
+                                onClick={() => removeItem(item.product_id, `${item.product_id}::${JSON.stringify(item.selectedOptions||[])}`)}
                                 className="w-8 h-8 p-0 text-red-400 hover:text-red-300"
                               >
                                 <Trash2 className="w-4 h-4" />

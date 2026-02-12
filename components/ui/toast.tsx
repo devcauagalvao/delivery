@@ -41,6 +41,11 @@ const toastVariants = cva(
   }
 )
 
+export type ToastProps = React.ComponentPropsWithoutRef<typeof ToastPrimitives.Root> &
+  VariantProps<typeof toastVariants>
+
+export type ToastActionElement = React.ReactNode
+
 const Toast = React.forwardRef<
   React.ElementRef<typeof ToastPrimitives.Root>,
   React.ComponentPropsWithoutRef<typeof ToastPrimitives.Root> &
@@ -97,6 +102,8 @@ const ToastDescription = React.forwardRef<
   />
 ))
 ToastDescription.displayName = ToastPrimitives.Description.displayName
+
+export { Toast, ToastClose, ToastDescription, ToastProvider, ToastTitle, ToastViewport }
 
 export function ToastExample() {
   const [open, setOpen] = React.useState(false)

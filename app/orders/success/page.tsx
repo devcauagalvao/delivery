@@ -12,12 +12,11 @@ import { Textarea } from '@/components/ui/textarea'
 import { GlassCard } from '@/components/ui/glass-card'
 import { useCart } from '@/hooks/use-cart'
 import { useAuth } from '@/lib/auth'
-import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
-import { v4 as uuidv4 } from 'uuid'
+import { createOrder, insertOrderItems } from '@/lib/orders'
 
 /* ------------------- Validação ------------------- */
 const checkoutSchema = z.object({
@@ -52,9 +51,9 @@ export default function CheckoutPage() {
 
   /* ------------------- Proteção de rota ------------------- */
   useEffect(() => {
-    if (!user) return router.push('/auth')
+    // guest flow: do not require authentication
     if (state.items.length === 0) return router.push('/')
-  }, [user, state.items, router])
+  }, [state.items, router])
 
   /* ------------------- Captura localização ------------------- */
   const requestLocation = () => {
@@ -78,7 +77,7 @@ export default function CheckoutPage() {
     new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(cents / 100)
 
   const totalCents = useMemo(
-    () => state.items.reduce((acc, item) => acc + item.product.price_cents * item.quantity, 0),
+    () => state.items.reduce((acc, item) => acc + item.unit_price_cents * item.quantity + (item.selectedOptions || []).reduce((s:any,o:any)=>s + o.unit_price_cents * o.quantity,0), 0),
     [state.items]
   )
 
@@ -86,10 +85,6 @@ export default function CheckoutPage() {
 
   /* ------------------- Submit ------------------- */
   const onSubmit = async (data: CheckoutData) => {
-    if (!user?.id) {
-      toast.error('Usuário não autenticado.')
-      return
-    }
     if (state.items.length === 0) {
       toast.error('Carrinho vazio.')
       return
@@ -101,40 +96,38 @@ export default function CheckoutPage() {
 
     setLoading(true)
     try {
-      const orderId = uuidv4()
+      const idempotencyKey = (typeof crypto !== 'undefined' && (crypto as any).randomUUID)
+        ? (crypto as any).randomUUID()
+        : undefined
 
-      const orderItems = state.items.map(item => ({
-        id: uuidv4(),
-        product_id: item.product.id,
-        quantity: item.quantity,
-        unit_price_cents: item.product.price_cents,
-        subtotal_cents: item.product.price_cents * item.quantity,
-        order_id: orderId
-      }))
-
-      const orderPayload = {
-        id: orderId,
-        customer_id: user.id,
-        status: 'pending',
+      const orderResp = await createOrder({
+        customer_name: data.fullName,
+        customer_phone: data.phone.replace(/\D/g, ''),
+        is_delivery: !!(data.address || location),
+        delivery_address: data.address || null,
+        delivery_notes: null,
         payment_method: data.paymentMethod,
-        total_cents: totalCents,
         notes: data.notes || null,
-        delivery_lat: location?.lat || null,
-        delivery_lng: location?.lng || null,
         change_for_cents:
           data.paymentMethod === 'cash' && data.changeFor
             ? Math.round(parseFloat(data.changeFor) * 100)
             : null,
-        customer_name: data.fullName,
-        customer_phone: data.phone.replace(/\D/g, ''),
-        delivery_address: data.address || null
-      }
+        idempotency_key: idempotencyKey ?? null,
+      })
 
-      const { error: orderError } = await supabase.from('orders').insert([orderPayload])
-      if (orderError) throw orderError
+      const orderId = orderResp.id
+      if (!orderId) throw new Error('Falha ao criar pedido')
 
-      const { error: itemsError } = await supabase.from('order_items').insert(orderItems)
-      if (itemsError) throw itemsError
+      const itemsPayload = state.items.map(item => ({
+        product_id: item.product_id,
+        product_name: item.product_name,
+        unit_price_cents: item.unit_price_cents,
+        quantity: item.quantity,
+        item_notes: null,
+        selectedOptions: item.selectedOptions || [],
+      }))
+
+      await insertOrderItems(orderId, itemsPayload as any)
 
       clearCart()
       toast.success('Pedido realizado com sucesso!')
@@ -181,23 +174,23 @@ export default function CheckoutPage() {
         <GlassCard className="p-6 bg-[#1a1a1a]/50 border border-white/20 text-white space-y-3">
           <h2 className="text-xl font-semibold">Resumo do Pedido</h2>
           {state.items.map(item => (
-            <div key={item.product.id} className="flex justify-between items-center border-b border-white/20 pb-2">
+            <div key={`${item.product_id}::${JSON.stringify(item.selectedOptions||[])}`} className="flex justify-between items-center border-b border-white/20 pb-2">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-lg overflow-hidden bg-[#111] border border-white/20 flex-shrink-0">
+                <div className="w-12 h-12 rounded-lg overflow-hidden bg-[#111] border border-white/20 flex-shrink-0 flex items-center justify-center">
                   <Image
-                    src={item.product.image_url || '/placeholder.png'}
-                    alt={item.product.name}
+                    src={'/placeholder.png'}
+                    alt={item.product_name}
                     width={48}
                     height={48}
                     className="object-cover w-full h-full"
                   />
                 </div>
                 <div className="flex flex-col">
-                  <span>{item.product.name} x{item.quantity}</span>
-                  <span className="text-sm text-white/70">{formatPrice(item.product.price_cents)} cada</span>
+                  <span>{item.product_name} x{item.quantity}</span>
+                  <span className="text-sm text-white/70">{formatPrice(item.unit_price_cents)} cada</span>
                 </div>
               </div>
-              <span className="font-semibold text-[#cc9b3b]">{formatPrice(item.product.price_cents * item.quantity)}</span>
+              <span className="font-semibold text-[#cc9b3b]">{formatPrice((item.unit_price_cents + (item.selectedOptions||[]).reduce((s,o)=>s + o.unit_price_cents*o.quantity,0)) * item.quantity)}</span>
             </div>
           ))}
           <div className="flex justify-between font-bold text-lg pt-2">

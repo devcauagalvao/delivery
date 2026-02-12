@@ -11,8 +11,8 @@ import { toast } from "sonner"
 export default function ProfilePage() {
     const { user, profile, loading: authLoading, signOut } = useAuth()
 
-    const [editing, setEditing] = useState(false)
-    const [saving, setSaving] = useState(false)
+    // NOTE: client-side updates to `profiles` are disabled for the public (guest) flow.
+    // Profiles are used only for admin/operator accounts. Do not write to `profiles` from the public UI.
     const [form, setForm] = useState({ full_name: "", phone: "", address: "" })
     const router = useRouter()
 
@@ -57,21 +57,8 @@ export default function ProfilePage() {
     }
 
     const handleSave = async () => {
-        if (!user) return
-        try {
-            setSaving(true)
-            const { error } = await supabase
-                .from("profiles")
-                .update({ full_name: form.full_name, phone: form.phone, address: form.address })
-                .eq("id", user.id)
-            if (error) throw error
-            toast.success("Perfil atualizado!")
-            setEditing(false)
-        } catch (err: any) {
-            toast.error(err.message ?? "Erro ao salvar perfil")
-        } finally {
-            setSaving(false)
-        }
+        // intentionally disabled: public client must NOT write to `profiles` table.
+        toast.error('Edição de perfil desabilitada no fluxo público (guest)')
     }
 
     if (authLoading) {
@@ -154,89 +141,33 @@ export default function ProfilePage() {
                                     <p className="text-gray-400 text-sm">{user?.email}</p>
                                 </div>
                                 <div className="flex gap-2">
-                                    {editing ? (
-                                        <>
-                                            <button
-                                                onClick={() => setEditing(false)}
-                                                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-gray-600 text-gray-300 hover:bg-gray-700/30 transition"
-                                            >
-                                                <X className="w-4 h-4" /> Cancelar
-                                            </button>
-                                            <button
-                                                onClick={handleSave}
-                                                disabled={saving}
-                                                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-[#cc9b3b] text-[#cc9b3b] bg-[#cc9b3b]/10 hover:bg-[#cc9b3b]/20 transition disabled:opacity-50"
-                                            >
-                                                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Salvar
-                                            </button>
-                                        </>
-                                    ) : (
-                                        <button
-                                            onClick={() => {
-                                                setForm({
-                                                    full_name: profile?.full_name ?? "",
-                                                    phone: profile?.phone ?? "",
-                                                    address: profile?.address ?? ""
-                                                })
-                                                setEditing(true)
-                                            }}
-                                            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-[#cc9b3b] text-[#cc9b3b] hover:bg-[#cc9b3b]/10 transition"
-                                        >
-                                            <Edit3 className="w-4 h-4" /> Editar
-                                        </button>
-                                    )}
+                                    <button
+                                        onClick={signOut}
+                                        className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-red-500 text-red-400 hover:bg-red-500/10 transition"
+                                    >
+                                        <LogOut className="w-4 h-4" /> Sair
+                                    </button>
                                 </div>
                             </div>
 
                             {/* Campos */}
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {/* Nome */}
+                                {/* Nome (somente leitura — edição desabilitada no fluxo público) */}
                                 <div className="group rounded-xl border border-[#2a2a2a] bg-[#151515] p-4">
                                     <label className="text-xs uppercase tracking-wider text-gray-400">Nome</label>
-                                    {editing ? (
-                                        <input
-                                            name="full_name"
-                                            value={form.full_name}
-                                            onChange={handleChange}
-                                            placeholder="Seu nome completo"
-                                            className="mt-1 w-full bg-transparent outline-none text-white placeholder:text-gray-500 border-b border-[#333] focus:border-[#cc9b3b] py-1"
-                                        />
-                                    ) : (
-                                        <div className="mt-1 text-gray-200">{form.full_name || "—"}</div>
-                                    )}
+                                    <div className="mt-1 text-gray-200">{form.full_name || "—"}</div>
                                 </div>
 
-                                {/* Telefone */}
+                                {/* Telefone (somente leitura) */}
                                 <div className="group rounded-xl border border-[#2a2a2a] bg-[#151515] p-4">
                                     <label className="text-xs uppercase tracking-wider text-gray-400">Telefone</label>
-                                    {editing ? (
-                                        <input
-                                            name="phone"
-                                            value={form.phone}
-                                            onChange={handleChange}
-                                            placeholder="(11) 90000-0000"
-                                            className="mt-1 w-full bg-transparent outline-none text-white placeholder:text-gray-500 border-b border-[#333] focus:border-[#cc9b3b] py-1"
-                                            maxLength={15}
-                                        />
-                                    ) : (
-                                        <div className="mt-1 text-gray-200">{form.phone ? formatPhone(form.phone) : "—"}</div>
-                                    )}
+                                    <div className="mt-1 text-gray-200">{form.phone ? formatPhone(form.phone) : "—"}</div>
                                 </div>
 
-                                {/* Endereço */}
+                                {/* Endereço (somente leitura) */}
                                 <div className="group rounded-xl border border-[#2a2a2a] bg-[#151515] p-4 md:col-span-2">
                                     <label className="text-xs uppercase tracking-wider text-gray-400">Endereço</label>
-                                    {editing ? (
-                                        <input
-                                            name="address"
-                                            value={form.address || ""}
-                                            onChange={handleChange}
-                                            placeholder="Seu endereço"
-                                            className="mt-1 w-full bg-transparent outline-none text-white placeholder:text-gray-500 border-b border-[#333] focus:border-[#cc9b3b] py-1"
-                                        />
-                                    ) : (
-                                        <div className="mt-1 text-gray-200">{form.address || "—"}</div>
-                                    )}
+                                    <div className="mt-1 text-gray-200">{form.address || "—"}</div>
                                     <p className="mt-1 text-xs text-gray-400">
                                         Este será o endereço padrão para entregas, mas pode ser alterado a qualquer momento.
                                     </p>

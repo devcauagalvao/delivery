@@ -92,16 +92,10 @@ export default function AuthPage() {
         if (error) throw error
 
         if (data.user) {
-          const { error: profileError } = await supabase
-            .from('profiles')
-            .insert([{
-              id: data.user.id,
-              full_name: formData.fullName,
-              phone: formData.phone,
-              role: 'customer'
-            }])
-          if (profileError) throw profileError
-          toast.success('Conta criada com sucesso!')
+          // Não criar profile automaticamente para usuários públicos/cliente.
+          // O novo schema usa profiles apenas para contas administrativas (admin/operator).
+          // Portanto, não fazemos insert em `profiles` aqui para evitar constraint violations.
+          toast.success('Conta criada com sucesso! Verifique seu e-mail para confirmação.')
           router.push('/')
         }
       } else {

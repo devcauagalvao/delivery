@@ -3,9 +3,21 @@
 import { createContext, useContext, useReducer, useEffect, useMemo, useCallback } from 'react'
 import { Product } from '@/lib/supabase'
 
-export interface CartItem {
-  product: Product
+// Cart item snapshot (persisted in localStorage) — follow the spec exactly
+export interface CartOption {
+  option_id: string
+  option_name: string
+  unit_price_cents: number
   quantity: number
+}
+
+export interface CartItem {
+  product_id: string
+  product_name: string
+  unit_price_cents: number
+  quantity: number
+  item_notes?: string | null
+  selectedOptions?: CartOption[]
 }
 
 interface CartState {
@@ -13,50 +25,47 @@ interface CartState {
 }
 
 type CartAction =
-  | { type: 'ADD_ITEM'; product: Product }
-  | { type: 'REMOVE_ITEM'; productId: string }
-  | { type: 'UPDATE_QUANTITY'; productId: string; quantity: number }
+  | { type: 'ADD_ITEM'; item: CartItem }
+  | { type: 'REMOVE_ITEM'; productId: string; selectedOptionsKey?: string }
+  | { type: 'UPDATE_QUANTITY'; productId: string; quantity: number; selectedOptionsKey?: string }
   | { type: 'CLEAR_CART' }
   | { type: 'LOAD_CART'; items: CartItem[] }
 
+const LOCALSTORAGE_KEY = 'cart'
+
 const calculateTotal = (items: CartItem[]) =>
-  items.reduce((sum, item) => sum + item.product.price_cents * item.quantity, 0)
+  items.reduce((sum, item) => sum + item.unit_price_cents * item.quantity + (item.selectedOptions || []).reduce((s, o) => s + o.unit_price_cents * o.quantity, 0), 0)
+
+// Helper to create a stable key for item+options comparison
+const itemKey = (item: CartItem) => `${item.product_id}::${JSON.stringify(item.selectedOptions || [])}`
 
 const cartReducer = (state: CartState, action: CartAction): CartState => {
   switch (action.type) {
     case 'ADD_ITEM': {
-      const existingItem = state.items.find(item => item.product.id === action.product.id)
-      let newItems: CartItem[]
+      // Prevent duplicate items (merge by product_id + selectedOptions)
+      const key = itemKey(action.item)
+      const existingIndex = state.items.findIndex(i => itemKey(i) === key)
 
-      if (existingItem) {
-        newItems = state.items.map(item =>
-          item.product.id === action.product.id
-            ? { ...item, quantity: item.quantity + 1 }
-            : item
-        )
-      } else {
-        newItems = [...state.items, { product: action.product, quantity: 1 }]
+      if (existingIndex > -1) {
+        const newItems = [...state.items]
+        newItems[existingIndex] = { ...newItems[existingIndex], quantity: newItems[existingIndex].quantity + action.item.quantity }
+        return { items: newItems }
       }
 
-      return { items: newItems }
+      return { items: [...state.items, action.item] }
     }
 
     case 'REMOVE_ITEM': {
-      const newItems = state.items.filter(item => item.product.id !== action.productId)
+      const newItems = state.items.filter(i => i.product_id !== action.productId || (action.selectedOptionsKey && itemKey(i) !== action.selectedOptionsKey))
       return { items: newItems }
     }
 
     case 'UPDATE_QUANTITY': {
-      let newItems: CartItem[]
-      if (action.quantity <= 0) {
-        newItems = state.items.filter(item => item.product.id !== action.productId)
-      } else {
-        newItems = state.items.map(item =>
-          item.product.id === action.productId
-            ? { ...item, quantity: action.quantity }
-            : item
-        )
-      }
+      const newItems = state.items.map(i =>
+        i.product_id === action.productId && (!action.selectedOptionsKey || itemKey(i) === action.selectedOptionsKey)
+          ? { ...i, quantity: action.quantity }
+          : i
+      ).filter(i => i.quantity > 0)
       return { items: newItems }
     }
 
@@ -73,9 +82,9 @@ const cartReducer = (state: CartState, action: CartAction): CartState => {
 
 interface CartContextProps {
   state: CartState
-  addItem: (product: Product) => void
-  removeItem: (productId: string) => void
-  updateQuantity: (productId: string, quantity: number) => void
+  addItem: (productOrSnapshot: Product | CartItem, opts?: { quantity?: number; selectedOptions?: CartOption[]; item_notes?: string }) => void
+  removeItem: (productId: string, selectedOptionsKey?: string) => void
+  updateQuantity: (productId: string, quantity: number, selectedOptionsKey?: string) => void
   clearCart: () => void
   itemCount: number
   totalCents: number
@@ -89,7 +98,7 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
   // Load cart from localStorage on mount
   useEffect(() => {
     try {
-      const saved = localStorage.getItem('cart')
+      const saved = localStorage.getItem(LOCALSTORAGE_KEY)
       if (saved) {
         const items: CartItem[] = JSON.parse(saved)
         dispatch({ type: 'LOAD_CART', items })
@@ -101,13 +110,38 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
 
   // Save cart to localStorage when it changes
   useEffect(() => {
-    localStorage.setItem('cart', JSON.stringify(state.items))
+    try {
+      localStorage.setItem(LOCALSTORAGE_KEY, JSON.stringify(state.items))
+    } catch (e) {
+      console.warn('Failed to persist cart', e)
+    }
   }, [state.items])
 
-  const addItem = useCallback((product: Product) => dispatch({ type: 'ADD_ITEM', product }), [])
-  const removeItem = useCallback((productId: string) => dispatch({ type: 'REMOVE_ITEM', productId }), [])
-  const updateQuantity = useCallback((productId: string, quantity: number) =>
-    dispatch({ type: 'UPDATE_QUANTITY', productId, quantity }), [])
+  const addItem = useCallback((productOrSnapshot: Product | CartItem, opts: { quantity?: number; selectedOptions?: CartOption[]; item_notes?: string } = {}) => {
+    // Accept legacy Product (from UI) or full CartItem snapshot
+    let item: CartItem
+    if ((productOrSnapshot as Product).id) {
+      const p = productOrSnapshot as Product
+      item = {
+        product_id: p.id,
+        product_name: p.name,
+        unit_price_cents: p.price_cents,
+        quantity: opts.quantity ?? 1,
+        item_notes: opts.item_notes ?? null,
+        selectedOptions: opts.selectedOptions ?? [],
+      }
+    } else {
+      item = productOrSnapshot as CartItem
+      item.quantity = opts.quantity ?? item.quantity ?? 1
+      if (opts.selectedOptions) item.selectedOptions = opts.selectedOptions
+    }
+
+    dispatch({ type: 'ADD_ITEM', item })
+  }, [])
+
+  const removeItem = useCallback((productId: string, selectedOptionsKey?: string) => dispatch({ type: 'REMOVE_ITEM', productId, selectedOptionsKey }), [])
+  const updateQuantity = useCallback((productId: string, quantity: number, selectedOptionsKey?: string) =>
+    dispatch({ type: 'UPDATE_QUANTITY', productId, quantity, selectedOptionsKey }), [])
   const clearCart = useCallback(() => dispatch({ type: 'CLEAR_CART' }), [])
 
   const itemCount = useMemo(() => state.items.reduce((sum, item) => sum + item.quantity, 0), [state.items])

@@ -8,6 +8,5 @@ export interface Product {
     active: boolean
     created_at: string
     updated_at?: string
-    ingredients?: string[]
-    categories?: string[]
+    // categories and ingredients removed in new schema
 }

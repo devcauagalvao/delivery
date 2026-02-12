@@ -1,25 +1,47 @@
-import * as React from 'react';
-
-import { cn } from '@/lib/utils';
+import * as React from 'react'
+import { cn } from '@/lib/utils'
 
 export interface InputProps
-  extends React.InputHTMLAttributes<HTMLInputElement> {}
+  extends React.InputHTMLAttributes<HTMLInputElement> {
+    error?: boolean
+    helperText?: string
+    icon?: React.ReactNode
+  }
 
 const Input = React.forwardRef<HTMLInputElement, InputProps>(
-  ({ className, type, ...props }, ref) => {
+  ({ className, type, error, helperText, icon, ...props }, ref) => {
     return (
-      <input
-        type={type}
-        className={cn(
-          'flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50',
-          className
+      <div className="w-full">
+        <div className={cn(
+          'flex items-center h-12 w-full rounded-xl border transition-all duration-200 px-4',
+          'bg-[#1a1a1a] text-white placeholder:text-gray-500',
+          'border-white/20 hover:border-white/30 focus-within:border-[#cc9b3b] focus-within:ring-1 focus-within:ring-[#cc9b3b]',
+          error && 'border-red-500/50 focus-within:border-red-500 focus-within:ring-red-500',
+          'disabled:opacity-50 disabled:cursor-not-allowed'
+        )}>
+          {icon && <div className="mr-2 text-gray-400 flex-shrink-0">{icon}</div>}
+          <input
+            type={type}
+            className={cn(
+              'flex-1 bg-transparent outline-none text-white file:border-0 file:bg-transparent file:text-sm file:font-medium disabled:cursor-not-allowed',
+              className
+            )}
+            ref={ref}
+            {...props}
+          />
+        </div>
+        {helperText && (
+          <p className={cn(
+            'text-xs mt-2',
+            error ? 'text-red-400' : 'text-gray-400'
+          )}>
+            {helperText}
+          </p>
         )}
-        ref={ref}
-        {...props}
-      />
-    );
+      </div>
+    )
   }
-);
-Input.displayName = 'Input';
+)
+Input.displayName = 'Input'
 
-export { Input };
+export { Input }

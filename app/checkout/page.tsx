@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { motion } from 'framer-motion'
 import { useCart } from '@/hooks/use-cart'
 import { useAuth } from '@/lib/auth'
-import { supabase } from '@/lib/supabase'
+import { createOrder, insertOrderItems, applyCoupon } from '@/lib/orders'
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -18,22 +18,33 @@ export default function CheckoutPage() {
   const [loading, setLoading] = useState(false)
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null)
   const [locationError, setLocationError] = useState('')
+  const [couponCode, setCouponCode] = useState('')
 
   const { state, clearCart } = useCart()
-  const { user, profile } = useAuth()
+  const { profile } = useAuth() // guest flow: profile may be null but we don't write to profiles
   const router = useRouter()
+
+  const [settings, setSettings] = useState<any | null>(null)
 
   const formatPrice = (cents: number) =>
     new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(cents / 100)
 
   const totalCents = useMemo(
-    () => state.items.reduce((acc, item) => acc + item.product.price_cents * item.quantity, 0),
+    () => state.items.reduce((acc, item) => acc + item.unit_price_cents * item.quantity + (item.selectedOptions || []).reduce((s,o)=>s + o.unit_price_cents * o.quantity,0), 0),
     [state.items]
   )
 
   useEffect(() => {
-    if (!user || state.items.length === 0) router.push('/')
-  }, [user, state.items, router])
+    if (state.items.length === 0) router.push('/')
+  }, [state.items, router])
+
+  useEffect(() => {
+    let mounted = true
+    import('@/lib/settings').then(({ getSettings }) => {
+      getSettings().then(s => { if (mounted) setSettings(s) }).catch(() => {})
+    })
+    return () => { mounted = false }
+  }, [])
 
   const requestLocation = () => {
     if (!navigator.geolocation) {
@@ -52,53 +63,64 @@ export default function CheckoutPage() {
   }
 
   const onSubmit = async (data: CheckoutData) => {
-    if (!user?.id) return toast.error('Usuário não autenticado.')
     if (state.items.length === 0) return toast.error('Carrinho vazio.')
     if (!location && !data.address) return setLocationError('Informe endereço ou capture a localização.')
 
     setLoading(true)
     try {
-      const orderPayload = {
-        customer_id: user.id,
-        status: 'pending',
-        payment_method: data.paymentMethod,
-        total_cents: totalCents,
-        notes: data.notes || null,
-        delivery_notes: data.deliveryNotes || null,
-        delivery_lat: location?.lat || null,
-        delivery_lng: location?.lng || null,
+      if (!data.fullName || !data.phone) {
+        setLoading(false)
+        return toast.error('Nome e telefone são obrigatórios')
+      }
+
+      const idempotencyKey = (typeof crypto !== 'undefined' && (crypto as any).randomUUID)
+        ? (crypto as any).randomUUID()
+        : undefined
+
+      // Prevent checkout when store closed
+      if (settings && settings.is_open === false) {
+        throw new Error('A loja está fechada no momento')
+      }
+
+      const orderResp = await createOrder({
         customer_name: data.fullName,
         customer_phone: data.phone.replace(/\D/g, ''),
+        is_delivery: !!(data.address || location),
         delivery_address: data.address || null,
+        delivery_notes: data.deliveryNotes || null,
+        payment_method: data.paymentMethod,
+        notes: data.notes || null,
         change_for_cents:
           data.paymentMethod === 'cash' && data.changeFor
             ? Math.round(parseFloat(data.changeFor) * 100)
             : null,
-      }
+        idempotency_key: idempotencyKey || null,
+      })
 
-      const { data: insertedOrder, error: orderError } = await supabase
-        .from('orders')
-        .insert([orderPayload])
-        .select('id')
-        .single()
+      const orderId = orderResp.id
+      if (!orderId) throw new Error('Não foi possível criar pedido')
 
-      if (orderError || !insertedOrder?.id) {
-        throw orderError || new Error('Falha ao criar pedido')
-      }
-
-      const orderId = insertedOrder.id
-
-      const orderItems = state.items.map((item) => ({
-        order_id: orderId,
-        product_id: item.product.id,
-        quantity: item.quantity,
-        unit_price_cents: item.product.price_cents,
-        subtotal_cents: item.product.price_cents * item.quantity,
+      // Prepare cart items with snapshots and options
+      const itemsPayload = state.items.map((it) => ({
+        product_id: it.product_id,
+        product_name: it.product_name,
+        unit_price_cents: it.unit_price_cents,
+        quantity: it.quantity,
+        item_notes: it.item_notes ?? null,
+        selectedOptions: it.selectedOptions || [],
       }))
 
-      const { error: itemsError } = await supabase.from('order_items').insert(orderItems)
+      await insertOrderItems(orderId, itemsPayload as any)
 
-      if (itemsError) throw itemsError
+      // If coupon provided, call RPC and refresh order (server computes totals)
+      if (couponCode && couponCode.trim().length > 0) {
+        try {
+          await applyCoupon(orderId, couponCode.trim())
+        } catch (couponErr: any) {
+          // show message but don't abort after items inserted
+          toast.error('Cupom inválido ou não aplicável: ' + (couponErr?.message || ''))
+        }
+      }
 
       await clearCart()
       toast.success('Pedido realizado com sucesso!')

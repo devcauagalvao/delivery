@@ -27,7 +27,7 @@ describe('Cart Hook', () => {
     })
 
     expect(result.current.state.items).toHaveLength(1)
-    expect(result.current.state.items[0].product.id).toBe('1')
+    expect(result.current.state.items[0].product_id).toBe('1')
     expect(result.current.state.items[0].quantity).toBe(1)
     expect(result.current.itemCount).toBe(1)
   })
@@ -52,13 +52,13 @@ describe('Cart Hook', () => {
       result.current.addItem(mockProduct)
     })
 
-    expect(result.current.state.total).toBe(2500)
+    expect(result.current.totalCents).toBe(2500)
 
     act(() => {
       result.current.addItem(mockProduct)
     })
 
-    expect(result.current.state.total).toBe(5000)
+    expect(result.current.totalCents).toBe(5000)
   })
 
   it('should remove item from cart', () => {
@@ -75,6 +75,6 @@ describe('Cart Hook', () => {
     })
 
     expect(result.current.state.items).toHaveLength(0)
-    expect(result.current.state.total).toBe(0)
+    expect(result.current.totalCents).toBe(0)
   })
 })

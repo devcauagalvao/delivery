@@ -7,7 +7,7 @@ import { GlassCard } from './ui/glass-card'
 
 interface ProtectedRouteProps {
   children: React.ReactNode
-  requiredRole?: 'admin' | 'customer'
+  requiredRole?: 'admin' | 'operator'
 }
 
 export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) {
