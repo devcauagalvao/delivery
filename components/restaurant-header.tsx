@@ -149,14 +149,13 @@ export function CategoryMenu({
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="sticky top-20 z-30 bg-[#0a0a0a]/80 backdrop-blur-lg py-3 px-4 border-b border-white/10"
+      className="sticky top-[72px] z-30 bg-[#0b0b0b]/60 backdrop-blur border-b border-[#222] px-4 h-14 flex items-center"
     >
-      <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+      <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide w-full">
         {categories.map((category) => (
           <motion.button
             key={category}
             onClick={() => onChange(category)}
-            whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             className={`px-4 py-2 rounded-full whitespace-nowrap text-sm font-semibold transition-all duration-200 flex-shrink-0 ${
               activeCategory === category

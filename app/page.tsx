@@ -23,8 +23,13 @@ export default function HomePage() {
 
   // keep local menuState in sync with remote menu when it updates
   useEffect(() => {
-    if (menu && menu.length > 0) setMenuState(menu)
-  }, [menu])
+    if (menu && menu.length > 0) {
+      console.log('📦 Menu carregado:', menu)
+      setMenuState(menu)
+    } else if (menu && menu.length === 0 && !loading) {
+      console.warn('⚠️ Menu vazio mas não está loading')
+    }
+  }, [menu, loading])
   const [searchQuery, setSearchQuery] = useState('')
   const [cartOpen, setCartOpen] = useState(false)
   const [activeCategory, setActiveCategory] = useState<string>('Todos')
@@ -69,7 +74,33 @@ export default function HomePage() {
           signOut={signOut}
         />
         <div className="px-4 sm:px-6 lg:px-8 py-8">
+          <div className="text-gray-400 text-center">Carregando produtos...</div>
           <ProductGridSkeleton count={8} />
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-[#0a0a0a]">
+        <Header
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+          user={user}
+          profile={profile}
+          signOut={signOut}
+        />
+        <div className="px-4 sm:px-6 lg:px-8 py-8">
+          <div className="text-center text-red-400">
+            <p>Erro ao carregar produtos</p>
+            <button 
+              onClick={() => retry()} 
+              className="mt-4 px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
+            >
+              Tentar Novamente
+            </button>
+          </div>
         </div>
       </div>
     )
@@ -84,24 +115,6 @@ export default function HomePage() {
         profile={profile}
         signOut={signOut}
       />
-
-      {/* Informações do restaurante */}
-      <div className="px-4 sm:px-6 lg:px-8 py-8">
-        <RestaurantHeader
-          info={{
-            name: 'Taurus Black Burger',
-            logo: '/taurus-black-burguer/logo-taurus.png',
-            status: 'open',
-            openingHour: '11:00',
-            closingHour: '23:00',
-            averagePrepTime: 20,
-            deliveryFee: 499,
-            minimumOrder: 2500,
-          }}
-        />
-      </div>
-
-      {/* Busca móvel: use o campo no Header para mobile */}
 
       {/* Menu de categorias sticky */}
       {categories.length > 1 && (

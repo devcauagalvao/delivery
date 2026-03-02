@@ -78,7 +78,7 @@ function saveToLocalStorage(payload: { data: MenuCategory[]; ts: number }) {
 }
 
 async function rawGetMenu(): Promise<MenuCategory[]> {
-  // 1) categorias ativas
+  // 1) Tenta buscar categorias ativas
   const { data: categories, error: catError } = await supabase
     .from('categories')
     .select('id,name,sort_order')
@@ -87,26 +87,72 @@ async function rawGetMenu(): Promise<MenuCategory[]> {
 
   if (catError) {
     console.error('menu:getMenu categories error', catError)
-    throw catError
-  }
-  if (!categories || categories.length === 0) return []
-
-  const categoryIds = categories.map((c: any) => c.id)
-
-  // 2) relações product_categories
-  const { data: pcs, error: pcError } = await supabase
-    .from('product_categories')
-    .select('product_id,category_id')
-    .in('category_id', categoryIds)
-
-  if (pcError) {
-    console.error('menu:getMenu product_categories error', pcError)
-    throw pcError
+    // Don't throw - try fallback instead
   }
 
-  const productIds = Array.from(new Set((pcs || []).map((p: any) => p.product_id)))
+  let productIds: string[] = []
+
+  if (categories && categories.length > 0) {
+    const categoryIds = categories.map((c: any) => c.id)
+
+    // 2) relações product_categories
+    const { data: pcs, error: pcError } = await supabase
+      .from('product_categories')
+      .select('product_id,category_id')
+      .in('category_id', categoryIds)
+
+    if (pcError) {
+      console.error('menu:getMenu product_categories error', pcError)
+    } else {
+      productIds = Array.from(new Set((pcs || []).map((p: any) => p.product_id)))
+    }
+  }
+
+  // Fallback: if no categories or no products via categories, get all active products
   if (productIds.length === 0) {
-    return categories.map((c: any) => ({ id: c.id, name: c.name, sort_order: c.sort_order, products: [] }))
+    console.log('menu: using fallback - fetching all active products without categories')
+    const { data: allProducts, error: allProdError } = await supabase
+      .from('products')
+      .select('id,name,description,price_cents,original_price_cents,image_url,active,sort_order,created_at')
+      .eq('active', true)
+
+    if (allProdError) {
+      console.error('menu:getMenu all products fallback error', allProdError)
+      return []
+    }
+
+    console.log('menu: fallback found', allProducts?.length || 0, 'products')
+
+    // Return all products in a single "Hamburgers" category
+    if (!allProducts || allProducts.length === 0) {
+      console.warn('menu: fallback found no active products')
+      return []
+    }
+
+    // Sort by sort_order if available, otherwise by created_at
+    const sorted = [...allProducts].sort((a: any, b: any) => {
+      if (a.sort_order && b.sort_order) return a.sort_order - b.sort_order
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    })
+
+    const allProductsFormatted: MenuProduct[] = sorted.map((p: any) => ({
+      id: p.id,
+      name: p.name,
+      description: p.description ?? null,
+      price_cents: p.price_cents,
+      original_price_cents: p.original_price_cents ?? null,
+      image_url: p.image_url ?? null,
+      active: p.active,
+      sort_order: p.sort_order ?? null,
+      option_groups: [],
+    }))
+
+    return [{
+      id: 'all',
+      name: 'Hamburgers',
+      sort_order: 1,
+      products: allProductsFormatted,
+    }]
   }
 
   // 3) buscar produtos ativos (buscar apenas colunas necessárias)
@@ -125,54 +171,12 @@ async function rawGetMenu(): Promise<MenuCategory[]> {
   const prodMap = new Map<string, any>()
   ;(products || []).forEach((p: any) => prodMap.set(p.id, p))
 
-  // 4) buscar product_option_groups e options
-  const { data: pogs, error: pogError } = await supabase
-    .from('product_option_groups')
-    .select('product_id,option_group_id,min_select,max_select,required')
-    .in('product_id', productIds)
+  // Montar estrutura final sem options por enquanto
+  const { data: pcs } = await supabase
+    .from('product_categories')
+    .select('product_id,category_id')
+    .in('category_id', categories!.map((c: any) => c.id))
 
-  if (pogError) {
-    console.error('menu:getMenu product_option_groups error', pogError)
-    throw pogError
-  }
-
-  const optionGroupIds = Array.from(new Set((pogs || []).map((x: any) => x.option_group_id)))
-
-  const { data: optionGroups, error: ogError } = await supabase
-    .from('option_groups')
-    .select('id,name,min_select,max_select,required,sort_order,active')
-    .in('id', optionGroupIds)
-    .eq('active', true)
-    .order('sort_order', { ascending: true })
-
-  if (ogError) {
-    console.error('menu:getMenu option_groups error', ogError)
-    throw ogError
-  }
-
-  const optionGroupMap = new Map<string, any>()
-  ;(optionGroups || []).forEach((og: any) => optionGroupMap.set(og.id, og))
-
-  const { data: options, error: optError } = await supabase
-    .from('options')
-    .select('id,name,unit_price_cents,option_group_id,active,sort_order')
-    .in('option_group_id', optionGroupIds)
-    .eq('active', true)
-    .order('sort_order', { ascending: true })
-
-  if (optError) {
-    console.error('menu:getMenu options error', optError)
-    throw optError
-  }
-
-  const optionsByGroup = new Map<string, any[]>()
-  ;(options || []).forEach((opt: any) => {
-    const arr = optionsByGroup.get(opt.option_group_id) || []
-    arr.push(opt)
-    optionsByGroup.set(opt.option_group_id, arr)
-  })
-
-  // Montar estrutura final
   const categoriesWithProducts: MenuCategory[] = (categories || []).map((c: any) => {
     const relatedProductIds = (pcs || []).filter((pc: any) => pc.category_id === c.id).map((r: any) => r.product_id)
     const productsForCategory: MenuProduct[] = relatedProductIds
@@ -199,35 +203,6 @@ async function rawGetMenu(): Promise<MenuCategory[]> {
       sort_order: c.sort_order ?? null,
       products: productsForCategory,
     }
-  })
-
-  // Anexar option_groups e options em cada produto
-  ;(pogs || []).forEach((pog: any) => {
-    const product = categoriesWithProducts
-      .flatMap((c) => c.products)
-      .find((p) => p.id === pog.product_id)
-
-    if (!product) return
-
-    const og = optionGroupMap.get(pog.option_group_id)
-    if (!og) return
-
-    const ogEntry: MenuOptionGroup = {
-      id: og.id,
-      name: og.name,
-      min_select: pog.min_select ?? og.min_select ?? null,
-      max_select: pog.max_select ?? og.max_select ?? null,
-      required: pog.required ?? og.required ?? false,
-      options: (optionsByGroup.get(og.id) || []).map((o: any) => ({
-        id: o.id,
-        name: o.name,
-        unit_price_cents: o.unit_price_cents,
-        active: o.active,
-      })),
-    }
-
-    product.option_groups = product.option_groups || []
-    product.option_groups.push(ogEntry)
   })
 
   return categoriesWithProducts

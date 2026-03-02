@@ -3,11 +3,6 @@ const nextConfig = {
   // Geração estática de saída
   output: 'export',
 
-  // ESLint: ignora durante o build, mas recomenda manter lint localmente
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
-
   // TypeScript: ignora erros para não quebrar build, mas ideal revisar antes
   typescript: {
     ignoreBuildErrors: true,

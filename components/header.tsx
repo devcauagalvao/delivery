@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react'
 import { Search, Bell, LogOut, LogIn, Shield } from 'lucide-react'
-import { Input } from '@/components/ui/input'
+import { Input } from '@headlessui/react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -15,17 +15,28 @@ interface HeaderProps {
   signOut?: () => Promise<void>
 }
 
+const liquidInputStyle: React.CSSProperties = {
+  backgroundColor: 'rgba(11, 11, 11, 0.55)',
+  color: '#f3f4f6',
+  WebkitTextFillColor: '#f3f4f6',
+  WebkitBoxShadow: '0 0 0px 1000px rgba(11, 11, 11, 0.55) inset',
+  boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08), 0 8px 24px rgba(0,0,0,0.35)',
+}
+
 function SearchField({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   return (
     <div className="relative w-full">
-      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300/80">
         <Search className="w-4 h-4" />
       </span>
       <Input
+        type="text"
+        name="search"
         placeholder="Buscar hambúrgueres..."
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="pl-10 pr-4 h-11 w-full bg-[#111]/70 border border-[#222] text-gray-200 placeholder:text-gray-500 rounded-xl"
+        className="pl-10 pr-4 h-11 w-full rounded-xl border border-white/10 !bg-[#0b0b0b]/55 text-gray-100 placeholder:text-gray-400 backdrop-blur-xl appearance-none data-focus:outline-none data-focus:ring-2 data-focus:ring-[#cc9b3b]/35 data-focus:border-[#cc9b3b]/35 data-hover:border-white/20"
+        style={liquidInputStyle}
       />
     </div>
   )
@@ -112,7 +123,15 @@ export default function Header({ searchQuery, setSearchQuery, user, profile, sig
         {menuOpen && (
           <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="md:hidden px-4 py-3 border-t border-white/6 bg-[#070707]/60 backdrop-blur-sm">
             <div className="w-full mb-3">
-              <Input placeholder="Buscar hambúrgueres..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
+              <Input
+                type="text"
+                name="search_mobile"
+                placeholder="Buscar hambúrgueres..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="h-11 w-full rounded-xl border border-white/10 !bg-[#0b0b0b]/55 px-4 text-gray-100 placeholder:text-gray-400 backdrop-blur-xl appearance-none data-focus:outline-none data-focus:ring-2 data-focus:ring-[#cc9b3b]/35 data-focus:border-[#cc9b3b]/35 data-hover:border-white/20"
+                style={liquidInputStyle}
+              />
             </div>
             <div className="flex flex-col gap-2">
               <Link href="/orders" className="text-sm text-gray-300">Meus Pedidos</Link>
